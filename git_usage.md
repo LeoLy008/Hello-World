@@ -65,6 +65,7 @@ git show HEAD~n (当前版本的前n个版本, n 是数子)
 
 #### 10. git checkout 
 切换分支操作
+
 1. 创建新分支
   ```
   git checkout -b branch-name
