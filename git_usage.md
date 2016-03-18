@@ -43,5 +43,53 @@ git commit --amend -m "message" (在当前 commit id 上不断修改提交的内
 查看历史日志，
 ```
 git log -1 (显示提交日志，-n, n表示要看的commit的数量)
+git log --stat --summary (显示git commit 每次提交的状态，变化)
+
+git show (显示当前git commit 的信息，提交人信息，变更的 git diff 结果)
+git show commit-id (显示特定commit-id的提交信息)
+git show commit-id-first-part (同上，不许提供完整的commit-id 前缀即可)
+git show HEAD (当前版本)
+git show HEAD~ (当前版本的前一个版本)
+git show HEAD~~ (当前版本的前两个版本)
+git show HEAD~n (当前版本的前n个版本, n 是数子)
 ```
 
+#### 7. git tag
+增加标签
+
+#### 8. git merge
+合并操作
+
+#### 9. git diff
+比较操作
+
+#### 10. git checkout 
+切换分支操作
+1. 创建新分支
+  ```
+  git checkout -b branch-name
+  ```
+
+2. 切换到本地其他分支
+  ```
+  git checkout local-branch-name
+  git branch -l (显示本地分支, == git branch)
+  ```
+
+3. 切换到服务器某个分支
+  ```
+  git checkout remote-branch-name
+  git branch -r (显示远程的分支)
+  ```
+
+4. 切换到特定的 commit-id
+  ```
+  git checkout commit-id
+  ```
+
+5. 切换到特定的 tag
+  ```
+  git checkout tag
+  ```
+
+除了 ``1``, ``2``外，其他只是临时切换(切换后当前无branch)
