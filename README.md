@@ -24,7 +24,7 @@
   remote.origin.url=https://github.com/...
   .....
   ```
-  remote.origin.url 是 https 的，提交还要用户名密码
+  ``remote.origin.url`` 是 ``https`` 的，提交还要用户名密码
 
 5. 更新本地 origin 地址为 ssh 方式
   ```
@@ -37,7 +37,7 @@
   remote.origin.url=git@github.com:...
   ......
   ```
-  现在应该好了
+  ``remote.origin.url``是``git@github.com``的，现在应该好了
 
 6. Done
 
