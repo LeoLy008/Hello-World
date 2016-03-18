@@ -42,5 +42,6 @@ git commit --amend -m "message" (在当前 commit id 上不断修改提交的内
 #### 6. git log
 查看历史日志，
 ```
-git log -1 (显示日志及提交的commit的一个日志，-n, n表示要看的comment的数量,)
+git log -1 (显示提交日志，-n, n表示要看的commit的数量)
 ```
+
