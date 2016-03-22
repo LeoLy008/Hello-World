@@ -1,0 +1,6 @@
+
+* golang
+read book <<The go program language>>
+
+*** package and tools
+
