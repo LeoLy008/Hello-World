@@ -1,4 +1,4 @@
-#+STARTUP: indent
+#+STARTUP: 
 # 如何在emacs里输入中文，在/etc/profile 尾部增加
 # LOCAL=zh_CN.UTF-8
 # 重启电脑即可，前提是你的ibus已经可以正常工作了
@@ -127,3 +127,62 @@ An entry is added to the table by calling *image.RegisterFormat*
 
 
 **** PACKAGES and Naming
+
+
+** golang 基础部分 <<学习Golang>> <2016-04-01 Fri 00:03>
+
+*** 数据类型
+**** array
+array 定义方式为 *[n]<type>*, *n* 表示array的长度,type表示存储内容的类型. 
+大小是类型的一部分,不同的大小是不同的类型,不能赋值.
+*Notice* 数组是 *值* 类型,将一个数组传递给函数,函数将获得数组的一份拷贝.
+
+数组的初始化及多维数组
+#+begin_src, golang
+var a [10]int // 默认初始化为0
+a = {1,2,3,4,5,6,7,8,9,0}  // 一维数组,
+b := [3][2]int{ [...]int{1,2}, [2]int{3,4}, [2]int{5,6}}  // 二维数组,3行2列, [...]是老版本的填充写法,自动得到数组大小也要在方括号中填东西, 新版本不需要
+c := [3][2]int{ {1,2}, {3,4}, {5,6} }  // 同 b
+d := []int{1,2,3,4,5,6,7,8,9,0}  // 同 a,自动推倒出大小
+#+end_src
+
+**** slice
+slice与array接近,它是array的一个指针,底层指向一个array.
+slice是 *引用* 类型,对slice赋值时可能使它指向其他的array.
+slice作为函数的参数传递时,对slice内容的修改将传递回调用者,因为它是 *引用* 类型.相当于传递了底层array的指针.
+
+
+slice 使用 *make([]<type>, capicity)* 方式创建, make的第一个参数类似与array声明,第二参数表示要创建的底层array的容量.
+slice 也可通过对array/slice的切片操作创建, 切片操作 *array[n:m]* 其中 *n* 是起始下标,默认为0, *m* 结束下标,默认为被切片对象的最大下标.
+如果切片操作的上下标超出被切片对象的范围,会产生运行时错误.
+
+#+begin_src, golang
+var array [10]int
+slice := array[0:5]  // 将array作为slice的底层array,slice的len == 5, cap == 10
+#+end_src
+
+***** append slice
+使用 append(slice, ...) 在slice末尾追加元素,当追加数量超过底层array容量时,append自动分配新的底层array,并将旧值赋值过来,在进行追加操作. 操作完成后slice的底层array已经变化.
+append(slice, slice...)  如果追加的是slice, 需要带 *...* 告诉append将其展开
+
+
+**** map
+map是hash表(有索引的数组),定义map的格式为 *map[<from type>]<to type>*
+map也是 *引用* 类型
+#+begin_src, golang
+monthidays := map[string]int{
+    "Jan": 31, "Feb":28, "Mar": 31, // 最后的,是必须的
+}
+aMap := make(map[string]int)
+#+end_src
+
+map索引使用方括号检索
+对map使用range函数返回 key,value 对
+检查元素是否存在,用并行赋值
+#+begin_src, golang
+val, present := monthdays["Jul"]
+// 如果 "Jul" 索引存在,val为其值,present == true
+// 否则 val is nil, present == false
+
+delete(monthdays, "Mar")  // 删除map中的特定索引及值
+#+end_src
