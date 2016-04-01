@@ -146,6 +146,7 @@ c := [3][2]int{ {1,2}, {3,4}, {5,6} }  // 同 b
 d := []int{1,2,3,4,5,6,7,8,9,0}  // 同 a,自动推倒出大小
 #+end_src
 
+
 **** slice
 slice与array接近,它是array的一个指针,底层指向一个array.
 slice是 *引用* 类型,对slice赋值时可能使它指向其他的array.
@@ -186,3 +187,137 @@ val, present := monthdays["Jul"]
 
 delete(monthdays, "Mar")  // 删除map中的特定索引及值
 #+end_src
+
+
+*** 函数 <2016-04-01 五 17:21>
+
+定义函数
+#+begin_src, golang
+type mytype int  // 新的类型
+
+func (p mytype) funcname(q int) (r,s int) { return 0,0 }
+
+#+end_src
++ 关键字 *func* 用于定义一个函数
++ 函数可以绑定到特定类型上. 叫做 *接收者*. 有 *接收者* 的函数叫做 *mehtod* 方法. 
++ *funcname* 是函数名
++ q 是 int 类型的参数,值类型的参数使用 pass-by-value 方式传递,被复制
++ r, s 是函数的命名返回值. 如果返回一个值,可以省略()
+
+
++ go不允许函数嵌套,但可以嵌套匿名函数.
++ 局部变量覆盖全局变量
+
+
+**** 命名返回值
+go函数可以返回多个值,命名返回值的特点是
++ 命名返回值可作为局部变量在函数内使用
++ 命名返回值默认被初始化为对应类型的nil值
++ 函数执行 return 语句不带任何参数,命名返回值的当前值会被返回
++ 名字不是强制的,但是好的名字可以增加代码的可读性
+
+
+**** 延迟代码
+延迟代码会在函数退出前被调用,使用 *defer* 指定延迟代码.
+延迟代码的可用于释放在函数中申请的资源,防止在函数退出时忘记释放或释放多次.
+可多次使用 *defer* 指定延迟代码, 被延迟的代码按照 *FILO/LIFO* 的顺序执行.
+也可以用 *defer* 调用匿名函数
+#+begin_src, golang
+func deferDemo(x int) (y int) {
+    defer func() {  // 匿名函数
+        fmt.Println("deferDemo will return!")
+        y = 10 // always return 10
+    }()  // 此处的()是必须的,表示调用函数
+    
+    defer func(x int) {  // 带参数的匿名函数
+        y = x  // 修改返回值
+    }(5)  // 调用函数并提供参数
+}
+#+end_src
+
+
+**** 变参
+接受不定参数的函数叫做变参函数.
+func myfunc(arg ...int) {}
+*arg ...int* 表示接受不定个数的 int 类型参数,在函数体中,arg是int类型的slice
+如果不指定参数的类型,默认是空接口 interface{}.
+
+#+begin_src, golang
+func myfunc(arg ...int) {
+    for k, v := range arg {
+        fmt.Println("param[%d] == %d", k, v)
+    }
+}
+
+func myfuncX(arg ...) {  // 默认类型为interface{}
+}
+#+end_src
+
+
+**** 函数作为值
+函数在golang中也是值,可以被赋值
+可以将函数作为参数传递给函数,函数是 *引用* 类型(废话 bull ^o^)
+函数作为参数时,要说明函数的参数及返回值,不需要提供函数名: *func(parameter list) (ret list)* 作为函数签名
+使用 *%T* 打印类型,函数将输出 *func()*
+
+#+begin_src, golang
+func main() {
+    a := func() {  // 匿名函数赋值给a
+        println("I am a anonymous function")
+    }
+}
+
+var xs = map[int]func() int{}  // xs是一个数字和函数的hash
+xs[1] = func() int { return 1 }
+xs[2] = func() int { return 2 }
+
+func myfunc(a int, b int, c ...int) (ret ...int) {
+    append(ret, a)
+    append(ret, b)
+    append(ret, c...)
+}
+
+func callback(a int, f func(int, int, ...int) (...int)) {
+   x := make([]int, 1)
+   y := f(a, 1, x)
+   for k, v := range y {
+       println("k[%d]: v:[%d]", k, v)
+   }
+}
+
+#+end_src
+
+
+**** 恐慌(Panic)和恢复(Recover)
+恐慌和恢复是golang的异常处理机制.
+它应当被视为是最后的手段来使用.
+
+***** 恐慌(Panic)
+是一个内建的函数,可以中断原有的控制流程,进入一个恐慌流程.
+恐慌流程使调用函数的的执行被中断, *但此函数的延迟函数可以正常执行*.
+之后会返回调用者,调用者也会执行相同的恐慌行为,中断执行,执行其延迟函数.
+*恐慌使用这种方式向上传递,直到所有gorountine返回或遇到recover*.
+
+使用 *panic* 人为产生恐慌,可以由运行时错误产生,如数组越界
+
+***** 恢复(Recover)
+是一个函数,可以让进入恐慌流程的goroutine恢复.
+*recover仅在延迟函数中有效*
+正常情况下,recover调用会返回nil并且没有任何其他效果.
+如果goroutine进入恐慌,recover调用将返回panic输入的值,并恢复正常执行.
+
+#+begin_src, golang
+func catchPanic(f func()) (b bool) {
+    defer func() {  // 延迟函数
+        if x := recover(); x != nil {
+            b = true
+        }
+    }()  // 调用的()不能少
+    f()
+}
+#+end_src
+通过catchPanic函数调用的函数的panic不会传递到调用catchPanic的函数中.
+f函数的panic的传递在catchPanic中被终止.
+
+
+
