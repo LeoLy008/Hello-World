@@ -164,4 +164,72 @@ _, ok = x.(T)
 可赋值是相等比较(== !=)的基础
 
 *** Type Declarations
+类型生命使用 *type name underlying-type*
+*type* 是关键字, *name* 是新类型名称, *underlying-type* 是已有类型名称
+相当与 underlying-type 的别名,但在go中不能赋值(type不同),可以绑定不同的操作
 
+
+
+*** Packages and Files
+package子go中相当于其他语言中的库或模块(libraries or modules)
+package提供的是模块化,封装,分离编译和重用(modularity, encapsulation, separate compilation and reuse)
+package通常由一个或多个.go文件组成,在同一个package目录下(用做import的导入路径),
+如: "gopl.io/ch1/helloworld" package 存放在 "$GOPATH/src/gopl.io/ch1/helloworld" 目录下
+
+每个package有自己的命名空间(使用 *package packagename* 指定)
+我们创建一个 tempconv 包, 目录是 "gopl.io/ch2/tempcomv"
+在其下闯将2个文件 "tempconv.go" & "conv.go"
+他们都使用 "package tempconv" 作为包名
+
+
+**** Import
+使用上面定义的package
+#+begin_src, golang
+package main
+
+import (
+    "fmt"
+    "os"
+    "strconv"
+
+    "gopl.io/ch2/tempconv"  // 导入包 tempconv
+)
+
+func main() {
+    t := strconv.ParseFloat(os.Args[1], 64)
+    f := tempconv.Fahrenheit(t)  // 使用 tempconv.Fahrenheit 在 tempconv.go中定义
+    c := tempconv.Celsius(t)
+    fmt.Println("%s, %s" tempconv.CToF(c), tempconv.FToC(f))  // 使用在 conv.go 中定义的函数
+}
+#+end_src
+默认情况下,包路径的最后一段表示包的名字.
+
+
+**** Package Initialization
+package初始化始于package范围便来的初始化.
+多个.go文件的package初始化的顺序是按照.go文件被编译器读取的顺序初始化
+
+*init* 函数可以提供初始化时需要执行的其他操作.
+func init() {/* ... */}
+这个函数不能被显示的调用.当程序执行时, *init* 函数自动执行
+package的每个.go文件都可以包含一个 *init* 函数
+
+import 关键字导入的包以导入的顺序被初始化,它依赖的包也在此时以相同的规则初始化
+直到所有的导入包被初始化完成,才开始初始化 main 包. *因此 init 先于 main 被执行*
+
+
+*** Scope
+当使用 *:= expression* 赋值时,如果是范围赋值,
+此表达式倾向于创建新的局部变量来覆盖外部同名变量的可见性.
+#+begin_src, golang
+var cwd string
+func scopeTest() {
+   cwd, err := getCwd()  // cwd 是函数内的 local variable, 全局 cwd 不可见
+   for cwd, err := getCwd() {  // cwd 是 for 范围的 local variable, 函数范围 cwd 不可见
+   }
+}
+#+end_src
+
+
+*** function return <2016-04-06 三 17:29>
+有返回值的函数,必须提供 *return* 语句否则会编译错误
