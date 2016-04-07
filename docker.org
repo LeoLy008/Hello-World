@@ -1,0 +1,377 @@
+
+
+
+* docker 学习 <2016-04-07 Thu 21:02>
+
+** docker的优势
+同为虚拟化方案,docker相对与VM,不需要虚拟OS部分,直接使用LXC在OS层上对资源进行隔离,建立虚拟环境.
+docker与VM相比,在
++ 启动时间
++ 磁盘使用
++ 性能
++ 单系统支持量
+上站极大的优势
+docker可以提供:
++ 更快的交付和部署
++ 更高效的虚拟化
++ 更轻松的迁移和扩展
++ 更简单的管理
+
+** docker基本概念
+docker有三个基本概念
++ 镜像(Image)
++ 容器(Container)
++ 仓库(Repository)
+
+
+*** 镜像(Image)
+Image是一个只读的模板,用于创建Container
+举例来说,Image就是一个Container运行的环境,如OS
+
+*** 容器(Container)
+Container用来运行应用
+Container是从镜像创建的运行的实例.
+Container可以被启动,开始,停止,删除.
+每个Container都是相互隔离的,独立的平台
+
+Container是Image的运行实例,实在Image上创建的独立层
+
+*** 仓库(Repository)
+Repository是集中存放Image的地方.
+Repository Registry Server(仓库注册服务器)存放多个仓库,
+每个仓库包含多个镜像,
+每个镜像可包含多个标签
+仓库可以是Public或Private
+
+docker repository类似与git repository
+
+** 安装docker
+按照docker.com上的教程即可
+
+测试安装结果
+#+begin_src, bash
+$ docker run hello-world 
+docker: Cannot connect to the Docker daemon. Is the docker daemon running on this host?.
+See 'docker run --help'.
+# 提示 docker daemon 没有运行
+
+# 检查docker服务是否启动
+$ sudo service docker status
+docker stop/waiting
+
+# 启动docker服务
+$ sudo service docker start
+docker start/running, process 7580
+
+# 也可以使用以下命令启动 docker daemon, 临时启动daemon,可以在控制台看到日志
+$ sudo docker daemon
+INFO[0000] Graph migration to content-addressability took 0.00 seconds 
+INFO[0000] Firewalld running: false                     
+INFO[0000] Default bridge (docker0) is assigned with an IP address 172.17.0.0/16. Daemon option --bip can be used to set a preferred IP address 
+WARN[0000] Your kernel does not support swap memory limit. 
+INFO[0000] Loading containers: start.                   
+.
+INFO[0000] Loading containers: done.                    
+INFO[0000] Daemon has completed initialization          
+INFO[0000] Docker daemon                                 commit=20f81dd execdriver=native-0.2 graphdriver=aufs version=1.10.3
+INFO[0000] API listen on /var/run/docker.sock           
+
+#+end_src
+
+
+** 镜像 Images
+
+*** 获取镜像
+#+begin_src, bash
+$ docker pull imageName  # 从官方获取镜像
+
+$ docker pull repositoryRegisterServer/imageName  # 从指定的仓库注册服务获取镜像
+
+#+end_src
+
+*** 列出本地镜像
+
+#+begin_src, bash
+$ docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+hello-world         latest              690ed74de00f        5 months ago        960 B
+
+#+end_src
+
+*** 创建镜像
+
+#+begin_src, bash
+$ docker run -t -i training/sinatra /bin/bash
+root@containerInstantID:/#
+root@containerInstantID:/# apt-get install python
+root@containerInstantID:/# exit
+$ docker commit -m "added python" -a "Docker Newbee" containerInstanceID ouruser/sinatra:v2
+return_the_identitfy_of_new_image
+$ docker images
+$ docker run -t -i 
+#+end_src
+1. 首先使用特定镜像启动容器
+2. 启动的容器会有个实例ID,记下containerInstantID
+3. 在容器内做环境配置,如安装软件之类的(安装python),之后使用exit退出
+4. 使用 *docker commit* 提交更新后的副本,需要有Docker Hub帐号,打标签
+5. 可以在本地看列出我们的新镜像了
+
+
+**** 利用 Dockerfile 创建镜像
+使用 docker commit 创建镜像简单,但不利于在团队中分享.
+使用 docker build 和 Dockerfile 来创建心镜像,易于分享
+
+***** 创建一个 Dockerfile
+#+begin_quote, Dockerfile
+# This is a comment
+FROM ubuntu:14.04
+MAINTAINER Docker Newbee <newbee@docker.com>
+RUN apt-get -qq update
+RUN apt-get -qqy install ruby ruby-dev
+RUN gem install sinatra
+# put my local web site in myApp folder to /var/www
+ADD myApp /var/www
+# expose httpd port
+EXPOSE 80
+# run command after Container start
+CMD ["/usr/sbin/apachectl", "-D", "FOREGROUND"]
+#+end_quote
+
+Dockerfile的语法为:
++ *#* 开始的行为注释
++ *FROM* 指令表明基础镜像, *FROM <image>:<tag>*
++ *MAINTAINER* 紧接着维护者信息(userName email) *MAINTAINER <name> <email>*
++ *RUN* 开头的指令会在创建中运行,通常是安装原件之类的 *RUN <command>* 或 *RUN ["command", "param1", "param2"]*
++ *ADD <src> <dest>* 命令复制本地文件到镜像, src可以是相对于 Dockerfile的相对路径,URL或tar包(会自动解压)
++ *COPY <src> <dest>* 复制本地主机的src到容器的dest,同 *ADD* 如果使用本地目录为src,推荐使用
++ *EXPOSE* 向外部开放端口, *EXPOSE <port> [<port>...]*
+  + 启动容器时,可以通过-P参数指定,docker主机会自动分配一个端口转发到指定端口
++ *ENV <key> <value>* 指定环境变量,可悲后续 *RUN* 指令使用,容器启动后也有效
++ *CMD* 命令描述容器启动后运行的程序, 一个容器只能执行一条命令,如果制定了多条,执行最后一条.如果用户在启动容器时指定了命令,则不执行 *CMD*
+  + *CMD ["executable", "param1", "param2"]* 使用 exec 执行命令
+  + *CMD command param1 param2* 在/bin/sh 中执行,需要交互的应用
+  + *CMD ["param1", "param2"]* 提供给 *ENTRYPOINT* 的默认参数
++ *ENTRYPOINT ["executable", "param1", "param2"]* 指定容器启动后执行的命令,不会被docker启动命令覆盖
+  + 只能执行一个 *ENTRYPOINT* 指定多个时执行最后一个
+  + *ENTRYPOINT command param1 param2* 在shell中执行
++ *VOLUMN ["/data"]* 创建一个可以从本地主机或其他溶剂挂载的挂载点,一般用来存放需要持久保存的数据
++ *USER daemon* 指定容器运行时的用户名或UID,后续的RUN会使用被指定的用户
++ *WORKDIR /path/to/workdir* 为后续的 *RUN* *CMD* *ENTRYPOINT* 指令配置工作目录
++ *ONBUILD [INSTRUCTION]* 如果所创建的镜像作为其他镜像的基础镜像,执行的操作指令.等价与在新的镜像的Dockerfile中增加指令. *INSTRCUTION* 可以是以上的任意命令
+
+每操作一部,实际上创建一个临时的镜像,下一步操作完成时,前一步的临时镜像被删除
+不能超过127层(最多128个RUN指令)
+
+Dockerfile 一般分为4个部分
+1. 基础镜像信息
+2. 维护者信息
+3. 镜像操作指令
+4. 容器启动时执行的指令
+
+***** 使用 docker build 生成镜像
+#+begin_src, bash
+$ docker build -t="ouruser/sinatra:v2"
+
+#+end_src
+
+*** 修改镜像标签
+docker tag ImageID repository:tag
+
+*** 倒入本地镜像文件
+*cat image.file | docker import - ubuntu:14.04*
+*docker import image.file ubuntu:14.04-python3.4*
+将本地文件 *image.file* 倒入本地镜像库, 仓库名为 ubuntu, 标签为14.04
+
+*** 上传镜像
+*docker push ouruser/sinatra*
+将本地镜像上传至服务器 user/repository 下
+
+*** 导出本地镜像至文件
+*docker save -o localfileName repository:tag*
+
+*** 倒入本地镜像
+*docker load --input localfile*
+*docker load < localfile*
+
+*** 移除本地镜像
+*docker rmi image*
+要移除Image,首先要移除依赖他的所有container
+
+*** 移除本地容器
+*docker rm container*
+
+*** 清理未打标签的Image
+*docker rmi $(docker images -q -f "dangling=true")*
+*docker rmi $(docer images --quiet --filter "dangling=true")* 
+dangling是dangle的分词形式,表示"吊着,悬挂着,尾随"
+
+
+** 容器 Container
+容器是独立运行的一个或一组应用,及他们的运行环境.
+
+*** 启动
+启动有两种形式
++ 基于一个Image新建一个Container并启动
++ 将处于终止状态的Container重新启动
+
+
+**** 新建启动
+*docker run repository:tag CMD_to_run* 指令
+*docker run -t -i ubuntu:14.04 /bin/bash* 启动容器,启动/bin/bash并容许交互
+*-t* 要求docker分配伪终端,并绑定到docker的标准输入输出
+*-i* 要求docker的标准输入保持打开
+
+使用docker run命令时,docker在后台会做的操作有:
++ 检查本地镜像是否存在,不存在则下载
++ 利用镜像创建容器
++ 分配一个文件系统,并在只读的文件系统外再挂载一层可读写层
++ 从宿主主机配置的网桥接口中桥接一个虚拟接口到容器中
++ 从地址池配置一个IP地址给容器
++ 执行用户指定的命令
++ 执行完后终止容器
+
+**** 启动已终止的容器
+*docker start*
+
+*** 后台运行
+*docker run -d ubuntu:14.04 /bin/sh -c "while true; do echo hello world; sleep 5"; done;* 
+*-d* 使container运行在后台,不会将结果输出到控制台,可以通过 *docker logs* 查看输出
+使用 *-d* 启动后会返回一个唯一ID, 可通过 *docker ps* 查看容器信息
+*docker logs [containerID or names]* 查看输出
+
+*** 终止容器
+使用 *docker stop [containerID or names]* 来终止运行中的容器
+容器指定的命令终结时,容器也会自动退出.
+终止状态的容器可以用 *docker ps -a* 来查看
+
+
+*** 进入容器
+使用 *-d* 运行的容器可以再以交互方式运行
+
+**** attach 命令
+*docker attach name/containerID* 进入container
+
+
+**** nsenter 命令
+可能需要安装,是util-linux包2.23版本后的命令 **
+nsenter可以访问另一个进程的名字空间.需要root权限
+
+
+*** 导入和导出容器
+
+**** 导出容器
+可以使用 *docker export containerID > file.tar* 将container导出到文件
+
+**** 导入快照
+使用 
+*docker import --input file repository:tag*
+*cat ubuntu.tar | docker import - repository:tag*
+将容器导入为Image
+*docker load* 用于导入Image, 包含元数据
+*docker import* 用于导入Container, 不包含元数据
+
+
+*** 删除容器
+*docker rm*
+*docker rm $(docker ps -a -q)* 删除所有处于 *-a* (终止)状态的Container
+其实是删除所有容器,但是 *docker rm* 不会删除运行中的Container,所以...
+
+
+** 仓库 Repository
+Docker Hub 是默认的仓库注册服务器
+
+*** 登陆
+*docker login* 登陆 Docker Hub 并将信息保存在 .dockercfg 中
+
+*** 基本操作
+**** 查找官方镜像
+*docker search key*
+
+**** 下载镜像
+*docker pull*
+
+**** 自动创建
+自动创建指用户通过 Docker Hub 指定跟踪一个目标网站上的项目,一旦项目更新,则自动执行创建镜像工作
+自动创建包含如下操作:
++ 登陆Docker Hub
++ 在目标网站链接到 Docker Hub
++ 在 Docker Hub 中配置一个自动创建
++ 选取目标网站的项目,需要包含Dockerfile和分支
++ 指定Dockerfile的位置,提交
+
+
+
+*** 私有仓库
+可以使用 *docker-registry* 工具创建私有仓库
+
+**** 安装 docker-registry
+*docker run -d -p 5000:5000 registry*
+使用官方的 registry 镜像来启动本地私有仓库.
+指定本地的配置文件
+*docker run -d -p 5000:5000 -v /home/user/registry-conf:/registry-conf -e DOCKER_REGISTRY_CONFIG=/registry-conf/config.yml registry*
+默认情况下,仓库被创建在容器的 */tmp/registry* 下,
+通过 *-v* 将镜像存放在被地的指定路径下,如下
+*docker run -d -p 5000:5000 -v /opt/data/registry:/tmp/registry registry*
+
+**** TODO 本地安装 <2016-04-08 Fri 00:13>
+
+**** TODO 配置 <2016-04-08 Fri 00:13>
+
+
+** Docker 数据管理
+如何在Docker内部及容器见管理数据,容器中管理数据主要有两种方式:
++ 数据卷 (Data volumes)
++ 数据卷容器 (Data volume containers)
+
+
+*** 数据卷 (Data volumnes)
+数据卷是一个可供一个或多个容器使用的特殊目录,它绕过UFS,提供:
++ 可在容器间共享和重用
++ 对数据卷的修改立即生效
++ 对数据卷的更新,不影响Image
++ 数据卷默认一直存在,即使Container被删除
+
+数据卷的使用类似与Linux下对目录或文件的mount,Image中原有的指定的挂载点被隐藏.
+
+**** 创建数据卷
+*docker run -v <localMountPoint> <dockerMountPoint>[:privilege]*
+*docker run -v <localMountPoint>:<dockerMountPoint>*
+可以在 Dockerfile 中使用 *VOLUME* 命令管理数据卷
+[:privilege]指定docker对数据卷的权限,可以是 *ro* 或没有,默认是 *rw*
+
+**** 删除数据卷
+*docker rm -v* 删除无主数据卷
+
+**** 查看数据卷的具体信息
+*docker inspect containerName/ID*
+输出的 "Volumns" 部分是数据卷的信息
+
+
+*** 数据卷容器
+如果被更新的数据需要在容器间共享,最好创建数据卷容器
+他和容器类似,只是专门用来存储数据
+*docker run -d -v /dbdata --name dbdata training/postgres echo Data-only container for postgres*
+*--name containerName* 指定Container的名字
+之后在其他容器中使用 *--volumes-from* 来加载数据卷容器 dbdata
+*docker run -d --volumes-from dbdata --name db1 training/postgres*
+*docker run -d --volumes-from dbdata --name db2 training/postgres*
+也可以级连的方式从其他容器挂载数据卷容器
+*docker run -d --name db3 --volumes-from db1 training/postgres*
+从容器db1挂载数据卷容器(挂载的还是dbdata)
+被挂载的数据卷容器不需要处于运行状态
+
+如果删除数据卷容器,必须使用 *docker rm -v* 且所有挂在他的容器已经被删除
+
+
+*** 数据卷容器的备份,恢复
+使用 -v 挂在本地数据卷并将数据卷容器的内容拷贝出来
+*docker run --volumes-from dbdata -v $(pwd):/backup ubuntu tar cvf /backup/backup.tar /dbdata*
++ 将当前目录挂载到/backup上
++ 挂载数据卷容器dbdata,路径为/dbdata
++ 执行 *tar cvf /backup/backup.tar /dbdata* 将/dbdata目录打包保存到/backup/目录下
+
+
+**** 恢复
+*docker run -d --name dbdata2 -v /dbdata2 ubuntu /bin/bash*
+创建新的数据卷容器
+*docker run --volumes-from dbdata2 -v $(pwd):/backup ubuntu cd /dbdata2; tar xvf /backup/backup.tar*
