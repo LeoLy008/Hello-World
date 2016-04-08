@@ -1,0 +1,82 @@
+
+
+
+** Composite Types <2016-04-06 三 17:54>
+
+*** Arrays
+array是0~固定类型固定个数的元素的序列. 因为array是固定长度的,所以很少被使用
+slice是可变长度的,常被使用.slice底层是array
+
+#+begin_src, golang
+var q [3]int = [3]int{1, 2, 3}
+var r [3]int = [3]int{1, 2}  // 第三个元素默认初始化为对应类型0值
+v := [...]int{1, 2, 3]
+w := [...]int{99: -1}  // 声明一个100元素的数组,前99默认值,最后一个 -1
+#+end_src
+
+如果array的元素是可比较的,则array也可以比较,比较array将比较每个元素是否相等
+不同长度,相同元素类型的array被视为不同类型
+
+array的指针支持[]下标操作 <2016-04-07 四 10:53>
+#+begin_src, golang
+var a [32]byte = [32]byte{29: 0xaa, 0xbb}
+b := &a
+b[1] = 1
+b[2] = 2
+*b[3] = 3  // error: invalid indirect of b[3] (type byte) 无效的间接操作对 b[3] (byte类型)
+           //        对 byte 类型的间接操作无效 说明 [] 先于 * 计算
+a[3] = 3   // OK
+fmt.Printf("a type is:[%T], b type is:[%T], *b type is:[%T]\n", a, b, *b)
+// a type is:[[32]uint8], b type is:[*[32]uint8], *b type is:[[32]uint8]
+// a 和 *b 类型相同,但是 a[3] = 3 OK, *b[3] = 3 error
+
+#+end_src
+
+
+*** Slice
+slice是可变长数组,有len(长度)和cap(容量),底层由array实现
+slice不能比较
+slice长度为0等于nil
+slice声明和数组相似,唯一的不同是没有长度说明
+使用make创建特定长度的slice
+*make([]type, len, cap)* 其中cap可选
+#+begin_src, golang
+var s []int     // len(s) == 0, s == nil
+s = nil         // len(s) == 0, s == nil
+s = []int(nil)  // len(s) == 0, s == nil
+s = []int{}     // len(s) == 0, s != nil
+#+end_src
+
+**** The append Function
+append增加slice的长度
+*append(sliceA, e1, e2, e3, ...)* 增加单个元素序列,不定参数个数
+*append(sliceA, array/slice...)* 增加array/slice全部元素到sliceA末尾, *...*表示展开array/slice或数组
+
+*copy(dst, src)* 将src复制到dst中
+
+*** Maps
+map是key-value的hash table,无序.
+使用key从表中获取value用时平均.
+map是引用类型
+*map[K]V* K表示索引的类型,V表示值的类型
+K类型必须是可用==比较的类型.
+比较浮点数是否相等是个坏主意.
+
+使用内建make函数创建map
+*a := make(map[string]int)*
+*a := map[string]int{"2":1, "1":2}*
+
+使用内建的delete函数删除特定元素
+*delete(a, "1")*
+*delete(map, key)*
+如果map没有key索引,不会产生错误
+
+map的元素不是变量,我们不能取map特定元素的引用/地址
+*val := &map["key"]* 取map["key"]的地址,错误
+
+map声明后是空的(nil),需要显示分配空间(make or {}),否则向map内添加元素将报错
+map的迭代操作是无序的,如果需要有序的访问他,应当对key排序后进行
+
+从map中使用key获取value始终会返回值,如果key不存在,返回value类型的零值,同时返回false
+*v, ok := map["key"]*
+如果 *ok == true* 表示key索引存在
