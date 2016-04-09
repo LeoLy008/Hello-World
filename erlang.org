@@ -1,0 +1,162 @@
+
+
+* erlang <2016-04-09 Sat 23:17>
+
+** erlang shell
+启动 erl
+^G 进入中断模式,可以执行job调度操作
+使用 *h* 查看帮助,得到
++ j 列出运行的所有job, 序号后带 *\** 的表示是当前job
++ c [nn] 切换到指定编号的job
++ i [nn] 中断指定编号的job
++ k [nn] 杀死指定编号的job
++ s [shell] 开启新的erl shell
++ r [node[shell]] 开启远程shell
++ q 退出erl
++ ?|h 显示帮助
+
+
+erl 中命令使用 *.* 结尾, 不写不认识
+
+
+** erlang 类型
+在 erlang shell 中,表达式必须以"."结尾,并带一个空格(换行也行). 否则不会执行表达式.
+
+可以用","分隔表达式,但是只有最后一个表达式的结果被显示
+*** Numbers
+erlang 只有 interger 和 floating 类型的数值, 默认透明的处理他们
+要使用整数的除法,使用 *div* , 求余数,使用 *rem* 
+
+默认使用10进制,如果使用其他进制, 格式为 *Base#Value* (支持的Base范围是2~36), 如2进制数 "2#0001"
+
+
+*** 变量
+erlang中变量的值为不可变量(赋值后不变)
+变量名以大写字母开头, 如
+#+begin_src, erlang
+1>One.
+2>One=1.
+3>Un=Uno=One=1.
+4>Two = One + One.
+#+end_src
+
+*=* 操作符的作用是:
++ 比较左右两侧的值, 不相等则报错(exception); 相等,返回相等的值.
++ 如果左侧是变量,且未绑定值,则将右侧的值存储(绑定)到左侧变量,并返回存储的值
+
+*=* 操作符的这种行为成为 *Pattern matching*
+
+*_* 也可作为变量的首字母, 单个下划线作为变量名表示此变量无用,不会存储所赋予的值(重复多次赋不同值不会报错)
+
+*f(VariableName).* 可以删除绑定值的变量,使之可以再次被赋值. 如果 *VariableName* 不存在也不会报错. *只在 erlang shell 中有效!!!*
+
+*** Atoms 
+Atoms 是字面意思, 常量
+如果不是以小写字母开始, 或包含一些特殊字符(_, @等), 使用 *单引号('')包裹* 
+
+atoms 存储在 atom table 中, 不会进行垃圾回收,因此要节制的使用,否则会耗尽内存!!!
+
+有些词作为语言的保留字,不能用作单独的 atoms, 他们是:
+after and andalso band begin 
+bnot bor bsl bsr bxor 
+case catch cond div end fun
+if let not of or orelse query
+receive rem try when xor
+
+*** Boolean Algebra & Comparison operators
+erlang 的逻辑操作有
++ and 与 左右都会 evaluate
++ or 或 左右都会 evaluate
++ xor 异或
++ not 非
++ andalso 与,如果左值为 false, 不 evaluate 右值
++ orelse 或,如果左值为 true, 不 evaluate 右值
+
+测试操作符
++ =:= 相等测试 (== for c)
++ =/= 不等测试 (!= for c)
++ == 忽略类型 比较值 (5 == 5.0  true)
++ /= 忽略类型 比较值 (5 /= 5.0  false)
+
+不同类型的比较关系如下
+*number < atom < reference < fun < port < pid < tuple < list < bit string*
+
+
+*** Tuples
+Tuples 是元组, 用 *大括号({})包裹*
+
+如何得到元组中元素的值呢? 答案是赋值操作.erlang会将右侧的元组展开,赋值给左侧的元组元素
+元组展开赋值必须保证等号两侧的元组具有相同的元素个数,否则会报错
+#+begin_src, erlang
+>Point = {1,2}
+> {X,Y} = Point
+> X
+1
+> Y
+2
+> {W,_} = Point
+> W
+1
+> {Y} = Point
+** exception error: no match of right hand side value {1,2}
+#+end_src
+
+元组的使用,要结合 erlang 的赋值/比较操作
+#+begin_src, erlang
+> PreciseTemperature = {celsius, 23.213}
+> {kelvin, T} = PreciseTemperature
+** exception error: no match ...
+#+end_Src
+如果接收元组的第一个元素是 atom celsius, 则 T 变量接收温度值成功......
+
+此种方式的元组被称为 "tagged tuple"
+
+tuple 也可以作为 tuple 的元素
+
+
+*** Lists
+lists 可以存储任何类型,不同类型的元素可以在一个数组中
+使用 *中括号[]包裹* 创建 lists
+
+erlang中string也是lists,是字符的lists
+erlang认为整数lists不是string,必须保证lists中至少有一个整数不是字母的整数值
+
+lists 的操作
++ ++ 连接两个list, 不去重,不排序. 多个 ++ 在一个表达式中时,计算从最右端开始
++ -- 将右侧的list从左侧删除, 不考虑元素顺序, 有就删,  多个 -- 在一个表达式中时,计算从最右端开始
++ hd(list) 返回list的第一个元素
++ tl(list) 返回list的最后一个元素
++ length(list) 返回list的长度
++ [element|list] 在list上追加一个element元素作为head
+
+在 erlang 中 [Head|Tail] 是 list 的标准写法, 如果 Tail 也是 list, 则称之为 proper list, 否则为 improper list, 如 "[1|2]" vs "[1|[2\]]"
+
+*** List Comprehension
+试想{2*n: n in [1,2,3,4]} 得到集合 [2,4,6,8]
+在erlang中使用 *[2*N || N <- [1,2,3,4]].* 来表达 (N 是变量,必须大写开始)
+
+*<-* 与 *=* 含义相同,只是不会抛出异常信息
+
+还可以增加过滤条件, *[2*N || N <- [1,2,3,4], N rem 3 =:= 2]*
+
+标准的写法是: *NewList = [Expression || Pattern <- list, Pattern <- list, ... , cond1, cond2, ...]*
+
+可以写多个条件,用","分隔, 所有条件都符合的被选中
+
+其中 *Pattern <- list* 被称为 *Generator expression*, 也可以有多个
+
+
+*** Bit Syntax
+和list类似,使用 *书名号(<<>>)包裹* 表示bit位序列
+
+操作
++ bsr  :: bit shift right
++ bsl  :: bit shift left
++ band :: bit and
++ bor  :: bit or
++ bxor :: bit xor
+
+支持 Bit Comprehension 语法同list comprehension
+
+**** TODO Bit Comprehension <2016-04-10 Sun 01:40>
+
