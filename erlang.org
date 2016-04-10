@@ -380,6 +380,34 @@ erlang没有返回值的函数是错误的,因此调用函数会抛出异常.
 函数的返回值是最后计算的表达式的值,没有逻辑判断情况下 *,* 被视为是语句的连接. 
 
 
+*** case of
+还有一种模式判断是 *case Expression of*
+#+begin_src, erlang
+insert（X, []) -> [X];
+insert(X, Set) ->
+  case list:member(X,Set) of
+    true -> Set;
+    false -> [X|Set]
+  end.
+
+beach(T) ->
+  case T of
+    {celsius, N} when N >= 20, N =< 45 -> 'favorable';
+    {kelvin, N} when N >= 293, N =<318 -> 'scientificaly favorable';
+    {fahrenheit, N} when N >= 68, N =< 113 -> 'favorable in the US';
+    _ -> 'avoid beach'
+  end.
+
+
+%% 同上，使用 Guards 而非 case
+beachf({celsius, N}) when N >= 20, N =< 45 -> 'favorable';
+beachf({kelvin, N}) when N >= 293, N =< 318 -> 'scientifically favorable';
+beachf({fahrenheit, N}) when N >= 68, N =< 113 -> 'favorable in the US'.
+
+#+end_src
+
+使用 *if* 或 *case of* 或 *Guards* 在效率上区别不大,主要看 clean code!!!
+
 
 *** io:format/1
 format 接受字符串格式说明及参数, 字符串格式说明中 ~ 代表转意字符
