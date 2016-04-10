@@ -98,14 +98,14 @@ Tuples 是元组, 用 *大括号({})包裹*
 > W
 1
 > {Y} = Point
-** exception error: no match of right hand side value {1,2}
+**exception error: no match of right hand side value {1,2}
 #+end_src
 
 元组的使用,要结合 erlang 的赋值/比较操作
 #+begin_src, erlang
 > PreciseTemperature = {celsius, 23.213}
 > {kelvin, T} = PreciseTemperature
-** exception error: no match ...
+**exception error: no match ...
 #+end_Src
 如果接收元组的第一个元素是 atom celsius, 则 T 变量接收温度值成功......
 
@@ -158,5 +158,210 @@ lists 的操作
 
 支持 Bit Comprehension 语法同list comprehension
 
+#+begin_src, erlang
+> Pixels = << 213,45,123,54,33,23>>. % Pixels是6byte bit tuple
+> <<Pix1:24,Pix2:24>> = Pixels.      % 将Pixels分解为2个bit tuple, 24bit一个, Pix1 输出并不是以 bit set方式输出,而是整数,可能是24bit在erlang中被看作是整形啥的!!!
+> <<Pix3:8,Pix4/binary>> = Pixels.   % 将Pixels分解为2个bit tuple, 8位第一个,剩下的一个. Pix4输出是bit tuple形式的
+#+end_src
+
+
+分解方式和tuple极其相似, 也支持类似tuple Generator Expression 的语法
+
+bit tuple 的分解语法可以表达为:
+*<<Variable:Size, Variable/TypeSpecifierList, Value:Size/TypeSpecifierList>> = <<Bit Syntax>>* 三种形式
++ Type :: 可以是 integer, float, binary(bytes), bitstring(bits), utf8/16/32; 默认是integer
++ Signedness :: 可以是 signed, unsigned, 只对 Type == integer 有效, 默认是unsigned
++ Endianness :: 多字节序, 可以是 big, little, native; 对多字节有效(integer,float,utf16/32). 多字节时是大端(big-endian低位高地址)还是小端(little-endian低位低地址). 如4byte数值72, big-endian <<0,0,0,72>>, little-endian<<72,0,0,0>>; 默认是 big-endian
++ Unit :: 格式是 (unit:integer) integer表示bit位长度,如(unit:4)表示4bit,范围是1~256
+
+当使用TypeSpecifierList时,使用 *-* 分隔类型, 如: 
+*<<X/integer-signed-little>> = <<-44>* 
+
+字符串可以时存在 list 中, 也可以存在 bit list 中, 
+list是链表结构,而 bit list 是c的数组, 使用 <<"string">>的方式
+<<"this is a bit string">>
+
+***** TODO different of string in atom, list, bit list <2016-04-10 Sun 15:16>
+
+
 **** TODO Bit Comprehension <2016-04-10 Sun 01:40>
+与 *[Expression || Pattern <- list, Pattern <- list, ..., Cond1, Cond2, ...]*
+相似, 其格式为:
+*[Expression || <<Pattern>> <= bit list, ..., Cond1, ...]*
+
+区别是把 *<-* (匹配拆分[]) 替换为 *<=* (匹配拆分<<>>, 以binary stream 作为Generator)
+
+Generator 最外层的是 [] 表示生成的是 list, 如果是 <<>> 表示生成的是 bit list
+
+当 Generator 返回 bit list 时,需要明确指定接收类型,否则会报错
+#+begin_src, erlnag
+> RGB = [{R,G,B} || <<R:8, G:8, B:8>> <= Piexls].
+> << <<R:8, G:8, B:8>> || {R,G,B} <- RGB >>          % opposite operation of above action
+
+> << <<Bin>> || Bin <- [<<1,2,3,4,5>>] >>.          % 因为<<Bin>> 默认是integer,而源数据是5byte,所以错误
+**exception error: bad argument 
+> << <<Bin/bytes>> || Bin <- [<<1,2,3,4,5,6>>] >>.  % OK
+
+> << <<(X+1)/integer>> || <<X>> <= <<3,4,5,6,7>> >>.
+<<4,5,6,7,8>>
+#+end_src
+
+
+
+** Modules 模块
+模块是特定功能的封装,提供对外服务的函数,相当与其他语言的 lib, package
+模块文件是erlang的代码文件,增加特定的说明. 
+erlang代码文件以 *.erl* 结尾
+
+每个模块在编译时,erlang会将其metadata保存,并提供额外的函数 *module_info/0* 及 *module_info/1* 用于访问module的metadata
++ *module_info()* 返回modulde元数据, 用户定义的元数据在 attributes 列表中
++ *module_info(AttributeName)* 返回元数据中指定属性的值
+
+*** 模块声明
+模块中可以包含 **函数** 和 **属性**
++ attributes :: 属性是模块的元数据(metadata), 描述模块本身
++ functions  :: 模块提供的功能封装,可供模块内部或外部调用
+
+属性的格式是 *-Name(Attribute)* Name是属性名,Attribute是属性值.
+
+当前erlang的Module有大量的属性,用户也可以定义自己的属性. 一下列出的是预定义的属
++ *-module(Name).*
+  总是作为Module源文件中的第一个属性(首条语句).
+  Name定义了Module对外的名字(Name作为atom被存储). 
+  外部使用 *M:F(A)* 的格式调用模块中的函数(M表示模块名,F表示模块的的函数,A表示函数的参数列表)
+
++ *-export([Func1/Arity, Func2/Arity])*
+  表示当前模块导出的函数列表, Func/Arity 表示 函数名/参数个数
+
++ *-import(Module, [Func1/Arity, Func2/Arity])*
+  导入的模块的函数列表, 默认情况下使用 M:F(A) 调用其他模块中的函数,如果使用 import 属性导入了 M 的 F/A 函数,则在本模块中可以直接使用 F(A) 调用 M:F(A). 不推荐使用!!!.
+
++ *-vsn(VersionNumber)* module的版本信息,编译后会自动生成一个唯一的编码,可用于hot-loading时标识需要替换的module
+
+创建module是要避免module间的循环引用,会导致代码维护困难
+
+*** 编译模块
+模块源文件 .erl 编译后默认在源文件目录下生成 .beam (Bogdan/Bjorn's Erlang Abstract Machine) 文件,包含VM byte code和native code. 
+默认是当前目录下查找FileName
+
+**** os shell 命令
+*$erlc flags moduleFile.erl* 
+
+**** erlang shell 命令
+*>compile:file(FileName, [flags])* 调用 compile模块的file/1函数. 默认是当前路径下查找FileName
+
+*c()* 在module内或erlang中
+
+**** 编译选项
+编译选项可以作为module的attribute写在源文件中,也可作为参数传递给编译命令.
+
+常用的编译选项有:
++ *-debug_info* 编译保留调试信息, erlang的调试器,代码检查分析工具会使用这些信息
++ *-{outdir,DIR}* 指定编译生成的beam文件的输出路径, 默认是当前路径
++ *-export_all* 到处module中的所有函数,忽略 *-export* 属性的值
++ *-{d,Macro}* or *-{d,Macro,Value}* 在module中定义Macro, Macro是atom. 默认Value是true. erlang的Macro相当与c的#define, 在编译时在源文件中的Macro被其值替换
+
+
+
+** 函数
+erlang的函数定义格式是:
+#+begin_src, erlang
+greet(male, Name)->
+  io:format("Hello, Mr. ~s!", Name);
+greet(female, Name)->
+  io:format("Hello, Mrs. ~s!", Name);
+greet(_, Name)->
+  io:format("Hello, ~s!", Name).
+#+end_Src
+
+erlang 的变量一旦绑定了值,就不可变了,所以不需要比较,直接使用模式匹配即可
+*_* 表示忽略变量的值
+*;* 表示函数未结束 (";"表示 orelse)
+*.* 表示结束
+
+再来一个
+#+begin_src, erlang
+function(X)->
+  Expression;
+function(Y)->
+  Expression;
+function(_)->
+  Expression.
+
+%% 开始时,X是未绑定变量,第一参数绑定至X, 当第二参数绑定至X时,X已是绑定变量
+%% 此时比较X与要绑定的值,如果相等,则模式匹配成功,返回true
+%% 如果不相等,则报错,模式匹配失败,执行第二个模式匹配,
+%% 第二模式匹配始终成功,所以返回false
+same(X,X)->  % 如果接收时是同一个值,赋值成功,可以接收,否则报错
+  true;
+same(_,_)->  % 否则返回false
+  false.
+
+
+%% 正确的参数格式是 {{A,B,C},{D,E,F}}
+%% 在分解时, 可以再次使用 = 赋值,表达式的结果不变
+%% 此处将 第一个tuple赋值给Data, 第二个tuple赋值给Time
+valid_time({Date = {Y,M,D}, Time = {H,Min,S}})->
+  io:format("Date(~p):~p-~p-~p; Time(~p) is: ~p:~p:~p!~n", [Date,Y,M,D, Time,H,Min,S]);
+valid_time(_)->
+  io:format("Wrong format!~n").
+#+end_src
+
+
+*** Guards
+Guards是额外的语句,可以在函数头部进行模式匹配更像详细的说明. 
+如上面例子中,赋值匹配不能限制数值范围,类型等, 使用Guards可以进行范围匹配
+
+#+begin_src, erlang
+old_enough(X) when X >= 16 -> true;
+old_enough(_) -> false.
+
+right_age(X) when X >= 16, X <= 104 -> true;  % X >= 16 and x <= 104
+right_age(_) -> false.
+
+wrong_age(X) when X < 16; X > 104 -> true;
+wrong_age(_) -> false.
+#+end_src
+
+Guards紧随函数参数列表, 对参数进行逻辑判断, 格式为:
+*func(A) when Expression [,; Expression] -> funcBody;...*
++ *Expression* 是验证入参的表达式, 可以指定多个表达式
++ *,* 分隔的表达式是逻辑与的关系 (andalso)
++ *;* 分隔的表达式是逻辑或的关系 (orelse)
++ *A*B/C >=0* 可以使用其他计算表达式
++ 使用类型检查函数 is_integer/1, is_atom/1, 不能使用用户自定的函数. (erlang不是纯函数式编程语言, Haskell是)
+
+*Note*
+Guards 中的 *,* 和 *;* 与 andalso 和 orelse 并不完全相同
++ *,* 和 *;* 在表达式抛出异常时,可以正常进行下一个表达式的匹配
++ andalso 和 orelse 在表达式抛出异常时,会终止匹配,不会尝试后面的表达式
++ andalso 和 orelse 在Guards中可以嵌套, *,* 和 *;* 不能嵌套
+  + *when (A orelse B) andalso C* OK!!!
+  + *when (A orelse B), C* OK!!! 
+  + *when (A, B); C* Error!!!
++ 如果表达式不抛出异常,他们一样!!!
+
+
+*** if (Guards Pattern)
+和 Guards 不同, if 是在函数体内的模式匹配,其语法格式是:
+#+begin_src, erlang
+heh_find() ->
+  if 1 =:= 1 ->
+    work
+  end,
+  if 1 =:=2; 1 =:= 1 ->
+    work
+  end,
+  if 1 =:= 2, 1 =:= 1 ->
+    fails
+  end.
+#+end_src
+
+*** io:format/1
+format 接受字符串格式说明及参数, 字符串格式说明中 ~ 代表转意字符
++ ~[-][n]s 表示字符串
++ ~n 表示新行
++ ~p print an Erlang term in a nice way (自动格式)
++ ~[-][n]f float pint 格式
++ ~[-][n] 是用n作为最小宽度打印, 默认是右对齐, - 表示左对齐
 
