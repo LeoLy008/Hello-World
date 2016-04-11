@@ -1,8 +1,9 @@
+%% -*- coding: UTF-8 -*-
 -module(if1).
 -export([heh_god/0, heh_god/1, score/1]).
 
 
-%% test if 
+%% test if
 heh_god() ->
   if 1 =:= 1 ->
     work
@@ -13,8 +14,8 @@ heh_god() ->
   if 1 =:= 2, 1 =:= 1 ->  % Warning: no clause will ever match; the guard for this clause evaluates to 'false'
     fails
   end.
-  
-  
+
+
 %% test if true
 heh_god(X) ->
   if is_integer(X), X > 16, X < 104 -> good;
@@ -28,11 +29,11 @@ heh_god(X) ->
   %end.
   X1 = [X|[X]],
   [12345|X1].
-  
-  
+
+
 %% Score level
 score(X) ->
- Score = if 
+ Score = if
    X >= 100 -> "A+";
    X >= 90  -> "A";
    X >= 80  -> "B";
