@@ -156,8 +156,9 @@ HTTP status code | 说明
 HTTP协议同时返回解释性文本(explanatory textural)作为参考, 应以 status code 为准.
 
 Status code 分段<br>
-范围 | 已定义的范围 | 分类
----|---|---
+
+code range | 已定义的范围 | 分类
+-----------|-------------|------
 100-199 | 100-101 | Informational 信息
 200-299 | 200-206 | Successful 成功
 300-399 | 300-305 | Redirection 重定向
@@ -208,6 +209,7 @@ headers提供请求和响应的额外信息.<br>
 header 的分类(classifications)
 * General headers<br>
   可以出现在请求或响应中<br>
+
 Information Header | Desc
 ---|---|
 Connection | 指定请求或响应的连接
@@ -219,6 +221,7 @@ Upgrade | 发送端期望使用的鞋业版本
 Via | 消息都经过了哪些 proxy or gateway
 
 HTTP/1.0 开始允许HTTP App缓存数据<br>
+
 Caching Header | Desc
 ---|---
 Cache-Control | pass caching directions along with the message
@@ -227,6 +230,7 @@ Pragma | another way to pass directions along with then message, though not spec
 
 * Request headers<br>
   请求消息的附加信息<br>
+
 Information Header | Desc
 ---|---
 Client-IP | 客户端IP
@@ -241,6 +245,7 @@ UA-Pixels | client machine display pixel
 User-Agent | 发送请求的app信息
 
 告诉Server client的接受限制<br>
+
 Accept header | Desc
 Accept | client 能处理的media types
 Accept-Charset | client 接受的字符集
@@ -249,6 +254,7 @@ Accept-Language | client 接受的语言类型
 TE | 其他可用的扩展代码 (what extension transfer codings are OK to use)
 
 限定条件头<br>
+
 Conditional request header | Desc
 Expect | 列出client期望server为当前请求做的行为
 If-Match | 如果当前tag匹配, 则返回资源
@@ -259,6 +265,7 @@ If-Unmodified-Since | 如果请求的资源旧与指定时间, 则返回资源
 Range | 返回指定范围的资源
 
 安全相关的头<br>
+
 security header | Desc
 Authorization | 服务端可作为验证client身份的数据
 Cookie | client 将 token 发送给服务端
