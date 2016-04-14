@@ -1,6 +1,7 @@
 
 
 * erlang <2016-04-09 Sat 23:17>
+Erlang is about programming for the right cases, you only program for what you know will happen and what you expect. Everything else should cause errors as soon as possible. <2016-04-11 Mon 21:05>
 
 ** erlang shell
 启动 erl
@@ -209,6 +210,8 @@ Generator 最外层的是 [] 表示生成的是 list, 如果是 <<>> 表示生�
 
 
 ** Modules 模块
+[[http://erlang.org/doc/reference_manual/modules.html]][erlang offical module manual]
+
 模块是特定功能的封装,提供对外服务的函数,相当与其他语言的 lib, package
 模块文件是erlang的代码文件,增加特定的说明.
 erlang代码文件以 *.erl* 结尾
@@ -418,6 +421,7 @@ format 接受字符串格式说明及参数, 字符串格式说明中 ~ 代表�
 + ~[-][n] 是用n作为最小宽度打印, 默认是右对齐, - 表示左对齐
 
 
+<<<<<<< HEAD
 ** recursion
 因为 erlang 没有循环语句，因此使用递归调用来实现循环。
 递归有两种：
@@ -427,3 +431,36 @@ format 接受字符串格式说明及参数, 字符串格式说明中 ~ 代表�
 这两种的递归的区别除了临时变量外，效率上没有太大差别（临时变量在递归层级多时是个效率问题）
 尾部递归(tail recursion) 将递归的结束条件作为参数返回，并在每次迭代时将本次迭代的计算结果与结束结果计算成新的结果，作为参数传递给下一次迭代
 这个参数被称为 Accumulator
+=======
+
+** Type
+Erlang属于
++ 动态类型语言 (变量不需要说明其类型)
++ 属于强类型语言 (不同类型的变量之间的运算不会自动转换,会报错)
+
+
+*** 类型转换
+Erlang使用内建函数做类型转换, 这类函数名以 <type>_to_<type> 存在,如
++ erlang:list_to_integer("54"). 54
++ erlang:integer_to_list(54). "54"
++ erlang:list_to_integer("54.32"). error
++ erlang:list_to_float("54.32"). 54.32
++ erlang:atom_to_list(true). "true"
++ erlang:list_to_bitstring("54"), <<"54">>
++ erlang:bitstring_to_list(<<"hi there">>) "hi there"
+
+
+*** 类型检查函数
+Erlang的类型检查函数名以 is_<type> 存在, 如:
+#+begin_quote
+is_bitstring, is_boolean, is_builtin/3, is_atom, is_binary
+...
+#+end_quote
+这些函数可以用在 Guards 中
+
+
+
+** 递归 <2016-04-12 Tue 07:13>
+[[http://learnyousomeerlang.com/recursion]][Recursion]
+
+>>>>>>> f223619a15e9533ea18593debb1dda17d4637019
