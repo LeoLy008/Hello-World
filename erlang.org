@@ -25,7 +25,7 @@ erl 中命令使用 *.* 结尾, 不写不认识
 可以用","分隔表达式,但是只有最后一个表达式的结果被显示
 *** Numbers
 erlang 只有 interger 和 floating 类型的数值, 默认透明的处理他们
-要使用整数的除法,使用 *div* , 求余数,使用 *rem* 
+要使用整数的除法,使用 *div* , 求余数,使用 *rem*
 
 默认使用10进制,如果使用其他进制, 格式为 *Base#Value* (支持的Base范围是2~36), 如2进制数 "2#0001"
 
@@ -50,15 +50,15 @@ erlang中变量的值为不可变量(赋值后不变)
 
 *f(VariableName).* 可以删除绑定值的变量,使之可以再次被赋值. 如果 *VariableName* 不存在也不会报错. *只在 erlang shell 中有效!!!*
 
-*** Atoms 
+*** Atoms
 Atoms 是字面意思, 常量
-如果不是以小写字母开始, 或包含一些特殊字符(_, @等), 使用 *单引号('')包裹* 
+如果不是以小写字母开始, 或包含一些特殊字符(_, @等), 使用 *单引号('')包裹*
 
 atoms 存储在 atom table 中, 不会进行垃圾回收,因此要节制的使用,否则会耗尽内存!!!
 
 有些词作为语言的保留字,不能用作单独的 atoms, 他们是:
-after and andalso band begin 
-bnot bor bsl bsr bxor 
+after and andalso band begin
+bnot bor bsl bsr bxor
 case catch cond div end fun
 if let not of or orelse query
 receive rem try when xor
@@ -174,10 +174,10 @@ bit tuple 的分解语法可以表达为:
 + Endianness :: 多字节序, 可以是 big, little, native; 对多字节有效(integer,float,utf16/32). 多字节时是大端(big-endian低位高地址)还是小端(little-endian低位低地址). 如4byte数值72, big-endian <<0,0,0,72>>, little-endian<<72,0,0,0>>; 默认是 big-endian
 + Unit :: 格式是 (unit:integer) integer表示bit位长度,如(unit:4)表示4bit,范围是1~256
 
-当使用TypeSpecifierList时,使用 *-* 分隔类型, 如: 
-*<<X/integer-signed-little>> = <<-44>* 
+当使用TypeSpecifierList时,使用 *-* 分隔类型, 如:
+*<<X/integer-signed-little>> = <<-44>*
 
-字符串可以时存在 list 中, 也可以存在 bit list 中, 
+字符串可以时存在 list 中, 也可以存在 bit list 中,
 list是链表结构,而 bit list 是c的数组, 使用 <<"string">>的方式
 <<"this is a bit string">>
 
@@ -199,7 +199,7 @@ Generator 最外层的是 [] 表示生成的是 list, 如果是 <<>> 表示生�
 > << <<R:8, G:8, B:8>> || {R,G,B} <- RGB >>          % opposite operation of above action
 
 > << <<Bin>> || Bin <- [<<1,2,3,4,5>>] >>.          % 因为<<Bin>> 默认是integer,而源数据是5byte,所以错误
-**exception error: bad argument 
+**exception error: bad argument
 > << <<Bin/bytes>> || Bin <- [<<1,2,3,4,5,6>>] >>.  % OK
 
 > << <<(X+1)/integer>> || <<X>> <= <<3,4,5,6,7>> >>.
@@ -210,7 +210,7 @@ Generator 最外层的是 [] 表示生成的是 list, 如果是 <<>> 表示生�
 
 ** Modules 模块
 模块是特定功能的封装,提供对外服务的函数,相当与其他语言的 lib, package
-模块文件是erlang的代码文件,增加特定的说明. 
+模块文件是erlang的代码文件,增加特定的说明.
 erlang代码文件以 *.erl* 结尾
 
 每个模块在编译时,erlang会将其metadata保存,并提供额外的函数 *module_info/0* 及 *module_info/1* 用于访问module的metadata
@@ -227,7 +227,7 @@ erlang代码文件以 *.erl* 结尾
 当前erlang的Module有大量的属性,用户也可以定义自己的属性. 一下列出的是预定义的属
 + *-module(Name).*
   总是作为Module源文件中的第一个属性(首条语句).
-  Name定义了Module对外的名字(Name作为atom被存储). 
+  Name定义了Module对外的名字(Name作为atom被存储).
   外部使用 *M:F(A)* 的格式调用模块中的函数(M表示模块名,F表示模块的的函数,A表示函数的参数列表)
 
 + *-export([Func1/Arity, Func2/Arity])*
@@ -241,11 +241,11 @@ erlang代码文件以 *.erl* 结尾
 创建module是要避免module间的循环引用,会导致代码维护困难
 
 *** 编译模块
-模块源文件 .erl 编译后默认在源文件目录下生成 .beam (Bogdan/Bjorn's Erlang Abstract Machine) 文件,包含VM byte code和native code. 
+模块源文件 .erl 编译后默认在源文件目录下生成 .beam (Bogdan/Bjorn's Erlang Abstract Machine) 文件,包含VM byte code和native code.
 默认是当前目录下查找FileName
 
 **** os shell 命令
-*$erlc flags moduleFile.erl* 
+*$erlc flags moduleFile.erl*
 
 **** erlang shell 命令
 *>compile:file(FileName, [flags])* 调用 compile模块的file/1函数. 默认是当前路径下查找FileName
@@ -309,7 +309,7 @@ valid_time(_)->
 
 
 *** Guards
-Guards是额外的语句,可以在函数头部进行模式匹配更像详细的说明. 
+Guards是额外的语句,可以在函数头部进行模式匹配更像详细的说明.
 如上面例子中,赋值匹配不能限制数值范围,类型等, 使用Guards可以进行范围匹配
 
 #+begin_src, erlang
@@ -337,7 +337,7 @@ Guards 中的 *,* 和 *;* 与 andalso 和 orelse 并不完全相同
 + andalso 和 orelse 在表达式抛出异常时,会终止匹配,不会尝试后面的表达式
 + andalso 和 orelse 在Guards中可以嵌套, *,* 和 *;* 不能嵌套
   + *when (A orelse B) andalso C* OK!!!
-  + *when (A orelse B), C* OK!!! 
+  + *when (A orelse B), C* OK!!!
   + *when (A, B); C* Error!!!
 + 如果表达式不抛出异常,他们一样!!!
 
@@ -355,10 +355,10 @@ heh_find() ->
   if 1 =:= 2, 1 =:= 1 ->
     fails
   end.
-  
+
 
 okGod(X) ->
-  Score = 
+  Score =
   if X > 100 -> "A+";
      X > 90  -> "A";
      X > 80  -> "B";
@@ -367,8 +367,8 @@ okGod(X) ->
      true    -> "OUT"
   end,
   {"Your score is " ++ Score ++ "!!!", X}.
-  
-  
+
+
 #+end_src
 其中每个 if 会对参数进行匹配,所有if匹配成功,返回最后的表达式值作为函数值
 (最后的表达式一定是以 *.* 结尾的, 其他的表达式以 *,* 结尾, 会被计算, 但不返回)
@@ -377,7 +377,7 @@ okGod(X) ->
 以上的代码之所以报警时因为if可能不匹配所有情况, 导致函数没有表达式作为返回值
 erlang没有返回值的函数是错误的,因此调用函数会抛出异常.
 
-函数的返回值是最后计算的表达式的值,没有逻辑判断情况下 *,* 被视为是语句的连接. 
+函数的返回值是最后计算的表达式的值,没有逻辑判断情况下 *,* 被视为是语句的连接.
 
 
 *** case of
@@ -417,3 +417,13 @@ format 接受字符串格式说明及参数, 字符串格式说明中 ~ 代表�
 + ~[-][n]f float pint 格式
 + ~[-][n] 是用n作为最小宽度打印, 默认是右对齐, - 表示左对齐
 
+
+** recursion
+因为 erlang 没有循环语句，因此使用递归调用来实现循环。
+递归有两种：
++ 普通递归 recursion, 返回语句是一个有递归调用的表达式
++ 尾部递归 tail recursion，返回语句是一个递归函数调用，不是表达式(没有临时变量)
+
+这两种的递归的区别除了临时变量外，效率上没有太大差别（临时变量在递归层级多时是个效率问题）
+尾部递归(tail recursion) 将递归的结束条件作为参数返回，并在每次迭代时将本次迭代的计算结果与结束结果计算成新的结果，作为参数传递给下一次迭代
+这个参数被称为 Accumulator
