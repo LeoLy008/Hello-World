@@ -1,0 +1,56 @@
+
+* Design Pattern <2016-03-31 周四 14:03>
+
+** 创建型模型(5)
+包含:
++ Singleton        单例
++ Prototype        原型
++ Facade           建造者
++ Factory          工厂
++ Abstract Factory 抽象工厂
+
+
+*** Singleton 单例
+目的：保证一个类只能有一个实例，并提供全局唯一的访问点
+1. 只有一个类实例，默认构造函数为私有函数，外部无法创建类实例。自身提供方法创建类实例
+2. 包含一个 *private* 静态变量，保存类的唯一实例；包含一个 *public* 的静态方法(习惯叫做 instance ，返回类的唯一实例。
+
+#+begin_src, c++
+// Singleton.h
+class Singleton {
+    private:
+        // private static variables
+        static Singleton* _instance;
+
+        // private constructor
+        Singleton();
+
+    public:
+        // public static method to return instance
+        static Singleton* instance();
+        // destruction function
+        static void Destory();
+}
+#+end_src
+
+#+begin_src, c++
+// Singletion.cpp
+
+Singletion* Singletion::_instance = NULL;
+
+Singletion::Singleton() {
+    // private constructor
+}
+
+Singletion* Singletion::instance() {
+    if(NULL == _instance) {
+        _instance = new Singleton();
+    }
+    return _instance;
+}
+
+void Singleton::Destory() {
+    delete _instance;
+    _instance = NULL;
+}
+#+end_src
