@@ -6,46 +6,57 @@ git is a content tracker, it tracks content - files and directories.
 It is at its heart a collection of simple tools that implement a tree history STORAGE AND DIRECTORY CONTENT MANAGEMENT SYSTEM.
 GIT好像一个文件系统，它追踪目录及文件的变化
 #+BEGIN_QUOTE
-IN MANY WAYS YOU CAN JUST SEE GIT AS A FILESYSTEM - IT'S CONTENT-ADDRESSABLE, AND IT HAS A NOTION OF VERSIONING, BUT I REALLY REALLY DISIGNED IT COMING AT THE PROBLEM FROM THE VIEWPOINT OF A FILESYSTEM PERSON (HEY, KERNELS IS WHAT I DO), AND I ACTUALLY HAVE ABSOLUTELY ZERO INTEREST IN CREATING A TRADITIONAL SCM SYSTEM -- LINUS
+in many ways you can just see git as a filesystem - it's content-addressable, and it has a notion of versioning, but i really really disigned it coming at the problem from the viewpoint of a filesystem person (hey, kernels is what i do), and i actually have absolutely zero interest in creating a traditional scm system -- linus
 #+END_QUOTE
 
 
-MOST SCMS STORE A NEW VERSION OF A PROJECT WITH CODE DELTA OR DIFF.
-GIT STORES A NEW VERSION OF A PROJECT, IT STORES A NEW TREE - A BUNCH OF BLOBS OF CONTENT AND A COLLECTION OF POINTERS THAT CAN BE EXPANDED BACK OUT INTO A FULL DIRECTORY OF FILES AND SUBDIRECTORIES.
-IF YOU WANT A DIFF BETWEEN TWO VERSIONS, IT DOESN'T ADD UP ALL THE DELTAS, IT SIMPLY LOOKS AT THE TWO TREES AND RUNS A NEW DIFF ON THEM.
+most scms store a new version of a project with code delta or diff.
+
+git stores a new version of a project, it stores a new tree - a bunch of blobs of content and a collection of pointers that can be expanded back out into a full directory of files and subdirectories.
+
+if you want a diff between two versions, it doesn't add up all the deltas, it simply looks at the two trees and runs a new diff on them.
+
+
 大多数SCMS保存新版本时，保存代码的变化部分；GIT保存一棵新的树，包含了新版本的文件的内容和一些文件的指针。当你需要比较版本时，它读出不同版本的文件，并运行DIFF返回结果。
+
 这就是GIT使分布式更容易的基础。合并一系列复杂的变化对它来说不是个问题，他直接返回特定版本的所有内容，不需要进行代码变化的合并。
 
-THERE ARE A NUMBER OF AREAS THAT THE DEVELOPERS OF GIT, INCLUDING AND ESPECIALLY LINUS, HAVE FOCUSED ON IN CONCEIVING(CONCEIVE V. 构想 设想 想象 构思 怀孕) AND BUILDING GIT.
-THERE MAY BE A LOT OF THINGS THAT GIT IS NOT GOOD AT, BUT THESE THINGS ARE WHAT GIT IS VERY GOOD AT.
+there are a number of areas that the developers of git, including and especially linus, have focused on in conceiving(conceive v. 构想 设想 想象 构思 怀孕) and building git.
 
-+ NON-LINEAR DEVELOPEMENT
-  GIT IS OPTIMIZED FOR CHEAP AND EFFICIENT BRANCHING AND MERGING.
-  GIT IS BUILT TO BE WORKED ON SIMULTANEOUSLY BY MANY PEOPLE, HAVING MYLTIPLE BRANCHES DEVELOPED BY INDIVIDUAL DEVELOPERS, BEING MERGED, BRANCHED AND RE-MERGED CONSTANTLY. BECAUSE OF THIS, BRANCHING IS INCREDIBLY CHEAP AND MERGING IS INCREDIBLY EASY.
+there may be a lot of things that git is not good at, but these things are what git is very good at.
 
-+ DISTRIBUTED DEVELOPMENT
-  GIT IS BUILT TO MAKE DISTRIBUTED DEVELOPMENT SIMPLE. NO REPOSITORY IS SPECIAL OR CENTRAL IN GIT -EACH CLONE IS BASICALLY EQUAL AND COULD GENERALLY REPLACE ANY OTHER ON AT ANY TIME. IT WORKS COMPLETELY OFFLINE OR WITH HUNDREDS OF REMOTE REPOSITORIES THAT CAN PUSH TO AND/OR FETCH FROM EACH OTHER OVER SEVERAL SIMPLE AND STANDARD PROTOCOLS.
++ non-linear developement
+  git is optimized for cheap and efficient branching and merging.
+  git is built to be worked on simultaneously by many people, having myltiple branches developed by individual developers, being merged, branched and re-merged constantly. because of this, branching is incredibly cheap and merging is incredibly easy.
 
-+ EFFICIENCY
-  GIT IS VERY EFFICIENT. MOST OPERATIONS ARE LOCAL, WHICH REDUCES UNNECESSARY NETWORK OVERHEAD. REPOSITORIES ARE GENERALLY PACKED VERY EFFICIENTLY, WHICH OFTEN LEADS TO SURPRISINGLY SMALL REPO SIZES.
-  GIT ALSO IS EFFICIENT IN ITS NETWORK OPERATIONS - THE COMMON GIT TRANSFER PROTOCOLS TRANSFER ONLY PACKED VERSIONS OF ONLY THE OJBECTS THAT HAVE CHANGED. IT ALSON WON'T TRY TO TRANSFER CONTENT TWICE, SO IF YOU HAVE THE SAME FILE UNDER TWO DIFFERENT NAMES, IT WILL ONLY TRANSFER THE CONTENT ONCE.
++ distributed development
+  git is built to make distributed development simple. no repository is special or central in git -each clone is basically equal and could generally replace any other on at any time. it works completely offline or with hundreds of remote repositories that can push to and/or fetch from each other over several simple and standard protocols.
+
++ efficiency
+  git is very efficient. most operations are local, which reduces unnecessary network overhead. repositories are generally packed very efficiently, which often leads to surprisingly small repo sizes.
+
+  git also is efficient in its network operations - the common git transfer protocols transfer only packed versions of only the ojbects that have changed. it alson won't try to transfer content twice, so if you have the same file under two different names, it will only transfer the content once.
 
 
 ** A TOOLKIT DESIGN
-GIT IS DESIGNED AS A TOOLKIT THAT CAN BE COMBINED AND CHAINED TO DO NEW AND INTERESTING THINGS.
-THE TOOLS CAN BE MORE OR LESS DIVIDED INTO TWO MAJOR CAMPS, OFTEN REFERED TO AS THE PORCELAIN AND THE PLUMBING.
+git is designed as a toolkit that can be combined and chained to do new and interesting things.
+the tools can be more or less divided into two major camps, often refered to as the porcelain and the plumbing.
 
-+ PORCELAIN (PORCELAIN N. 瓷 瓷器; ADJ. 脆的 易碎的 精美的 瓷的)
-  THE USER-ORIENTED INTERFACES TO DO SCM TYPE THINGS - HIDING THE LOW-LEVEL FUN.
++ porcelain (porcelain n. 瓷 瓷器; adj. 脆的 易碎的 精美的 瓷的)
+  the user-oriented interfaces to do scm type things - hiding the low-level fun.
 
-+ PLUMBING (PLUMBING N. 建筑物的管路系统，水暖工的工作，管道 水管设施; V. PLUMB 的分词)
-  TO DO SIMPLE THINGS FLEXIBLY AND ARE COMBINED BY PROGRAMS AND SCRIPTS INTO PORCELAIN PROGRAMS.
++ plumbing (plumbing n. 建筑物的管路系统，水暖工的工作，管道 水管设施; v. plumb 的分词)
+  to do simple things flexibly and are combined by programs and scripts into porcelain programs.
 
 
 ** GIT OBJECT TYPES
-GIT OBJECTS ARE THE ACTUAL DATA OF GIT, THE MAIN THING THAT THE REPOSITORY IS MADE UP OF. THERE ARE FOUR MAIN OBJECT TYPES IN GIT, THE FIRST THREE BEING THE MOST IMPORTANT TO REALLY UNDERSTAND THE MAIN FUNCTIONS OF GIT
+git objects are the actual data of git, the main thing that the repository is made up of. there are four main object types in git, the first three being the most important to really understand the main functions of git.
 
-ALL OF THESE TYPES OF OBJECTS ARE STORED IN THE GIT *OBJECT DATABASE*, WHICH IS KEPT IN THE *GIT DIRECTORY*. EACH OBJECT IS COMPRESSED (WITH ZLIB) AND REFERENCED BY THE SHA-1 VALUE OF ITS CONTENTS PLUS A SMALL HEADER.
+Git的对象是其实际存储的数据, repository实际是有Git对象构成的. Git共有4中对象,前三种可以帮助我们理解Git的工作原理.
+
+all of these types of objects are stored in the git *object database*, which is kept in the *git directory*. each object is compressed (with zlib) and referenced by the sha-1 value of its contents plus a small header.
+
+Git将其对象存储在repository目录下名为 *.git* 目录中, 可以称其为 *Object Database*. 每个对象都使用zlib压缩存储并使用其sha-1值作为标识.
 
 #+begin_quote
   ./              | *tree*: 1a738d
@@ -57,17 +68,24 @@ ALL OF THESE TYPES OF OBJECTS ARE STORED IN THE GIT *OBJECT DATABASE*, WHICH IS 
 #+end_quote
 
 + THE BLOB
-
   In Git, the contents of files are stored as *blobs*.
+
   Git将文件的内容存储为Blob对象
+
   It is important to note that it is the contents that are stored, not the files. The names and modes of the files are not stored with the blob, just the contents.
+
   谨记它只是保存了文件的内容，文件的名字和属性并没有保存在Blob对象中。
+
   This means that if you have two files anywhere in your project that are exactly the same, even if they have different names, Git will only store the blob once. This also means that during repository transfers, such as clones or fetches, Git will only transfer the blob once, then expand it out into multiple files upon checkout.
-  这就意味着如果你有两个内容相同的文件，即使他们的文件名不同，位置不同，Git只保存了一份Bolb数据在仓库里，当需要使用时，将他们解开成对应的文件。
+  这就意味着如果你有两个内容相同的文件，即使他们的文件名不同，位置不同，Git只保存了一份Bolb数据在仓库里，当需要使用时，将他们从Blob中解开, 生成对应的文件。
 
 + The Tree
   Dictories in Git basically correspend to *trees*.
+  
+  Git使用 *tree* 对象存储目录(表示)
+
   A tree is a simple list of trees and blobs that the tree contains, along whit the names and modes of those trees and blobs. The contents section of a tree object consists of a very simple text file that lists the mode, type, name and sha of each entry.
+
   tree包含其目录下的其他目录tree及文件的blob信息,包含他们的name和mode.
 
 + The Commit
