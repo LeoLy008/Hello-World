@@ -355,14 +355,23 @@ Docker Hub 是默认的仓库注册服务器
 *** 数据卷容器
 如果被更新的数据需要在容器间共享,最好创建数据卷容器
 他和容器类似,只是专门用来存储数据
+
 *docker run -d -v /dbdata --name dbdata training/postgres echo Data-only container for postgres*
+
 *--name containerName* 指定Container的名字
+
 之后在其他容器中使用 *--volumes-from* 来加载数据卷容器 dbdata
+
 *docker run -d --volumes-from dbdata --name db1 training/postgres*
+
 *docker run -d --volumes-from dbdata --name db2 training/postgres*
+
 也可以级连的方式从其他容器挂载数据卷容器
+
 *docker run -d --name db3 --volumes-from db1 training/postgres*
+
 从容器db1挂载数据卷容器(挂载的还是dbdata)
+
 被挂载的数据卷容器不需要处于运行状态
 
 如果删除数据卷容器,必须使用 *docker rm -v* 且所有挂在他的容器已经被删除
@@ -744,3 +753,29 @@ Docker服务是服务端,处理来自客户端的请求.
 客户端可以运行在同一主机上或其他主机上(通过socket或RESTful API来通信)
 
 Docker服务端在宿主主机运行客户端发来的命令
+
+
+
+* docker 使用 <2016-05-05 Thu>
+** docker contain
+使用 *docker run -ti --name python python /bin/bash*
+启动docker *python image* 后,安装其他包后退出.
+通过 *docker ps -a* 可见名为 *python* 的 *container*.
+使用 *docker start -i python* 再次进入 *python container* 时,所安装的其他包可用.
+使用 *docker rm python* 删除 *python container* 后,再次运行 *docker run -ti --name python python /bin/bash* 启动 *python* 运行环境,此时之前安装的包全部不见.
+
+因为包是安装在 *container* 中的, *image python* 不受影响,当使用 *docker rm python* 删除 *python container* 后,后安装的包随 *python container* 消失, *python image* 不受影响, 使用 *docker run -ti --name python python* 再次展开原有的 *python image* 环境.
+
+可以在安装完成后使用 docker 
+
+
+** docker 数据卷
+[[https://docs.docker.com/engine/userguide/containers/dockervolumes/][Manage data in containers]]
+*ocker run 使用 -v container-path* 来指定容器的数据卷路径
+
+*-v container-path* 只指定了容器内的路径,host上的实际路径可以通过 *docker inspect containerName* 返回的 *Mount* 节数据来查看, 其中 *Source* 表示 *host* 上的路径
+*Destination* 表示container内的路径
+
+也可以使用 *docker run -v host-path:container-path* 明确指定 *host* 和 *container* 上的数据卷的对应关系.
+
+一个 *-v* 参数只能指定一个数据卷的映射, 多个 *-v* 参数可以指定多个数据卷映射
