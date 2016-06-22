@@ -53,10 +53,7 @@ root@VBX:/home/xy# docker network inspect bridge
 这些参数都应出现在 ``--driver`` 后, 并在 ``NetworkName`` 前, 即:<br>
 ``docker network create --driver <DriverName> <Options> <NetworkName>``
 
-``docker network create --driver bridge \<br>
---subnet=173.0.0.0/16 \<br>
--o "com.docker.network.bridge.name"="myDockerBridge" \<br>
-myDockerBridge``
+``docker network create --driver bridge --subnet=173.0.0.0/16 -o "com.docker.network.bridge.name"="myDockerBridge" myDockerBridge``
 
 
 #### bridge
