@@ -1,0 +1,467 @@
+
+
+* erlang <2016-04-09 Sat 23:17>
+Erlang is about programming for the right cases, you only program for what you know will happen and what you expect. Everything else should cause errors as soon as possible. <2016-04-11 Mon 21:05>
+
+** erlang shell
+启动 erl
+^G 进入中断模式,可以执行job调度操作
+使用 *h* 查看帮助,得到
++ j 列出运行的所有job, 序号后带 *\** 的表示是当前job
++ c [nn] 切换到指定编号的job
++ i [nn] 中断指定编号的job
++ k [nn] 杀死指定编号的job
++ s [shell] 开启新的erl shell
++ r [node[shell]] 开启远程shell
++ q 退出erl
++ ?|h 显示帮助
+
+
+erl 中命令使用 *.* 结尾, 不写不认识
+
+
+** erlang 类型
+在 erlang shell 中,表达式必须以"."结尾,并带一个空格(换行也行). 否则不会执行表达式.
+
+可以用","分隔表达式,但是只有最后一个表达式的结果被显示
+*** Numbers
+erlang 只有 interger 和 floating 类型的数值, 默认透明的处理他们
+要使用整数的除法,使用 *div* , 求余数,使用 *rem*
+
+默认使用10进制,如果使用其他进制, 格式为 *Base#Value* (支持的Base范围是2~36), 如2进制数 "2#0001"
+
+
+*** 变量
+erlang中变量的值为不可变量(赋值后不变)
+变量名以大写字母开头, 如
+#+begin_src, erlang
+1>One.
+2>One=1.
+3>Un=Uno=One=1.
+4>Two = One + One.
+#+end_src
+
+*=* 操作符的作用是:
++ 比较左右两侧的值, 不相等则报错(exception); 相等,返回相等的值.
++ 如果左侧是变量,且未绑定值,则将右侧的值存储(绑定)到左侧变量,并返回存储的值
+
+*=* 操作符的这种行为成为 *Pattern matching*
+
+*_* 也可作为变量的首字母, 单个下划线作为变量名表示此变量无用,不会存储所赋予的值(重复多次赋不同值不会报错)
+
+*f(VariableName).* 可以删除绑定值的变量,使之可以再次被赋值. 如果 *VariableName* 不存在也不会报错. *只在 erlang shell 中有效!!!*
+
+*** Atoms
+Atoms 是字面意思, 常量
+如果不是以小写字母开始, 或包含一些特殊字符(_, @等), 使用 *单引号('')包裹*
+
+atoms 存储在 atom table 中, 不会进行垃圾回收,因此要节制的使用,否则会耗尽内存!!!
+
+有些词作为语言的保留字,不能用作单独的 atoms, 他们是:
+after and andalso band begin
+bnot bor bsl bsr bxor
+case catch cond div end fun
+if let not of or orelse query
+receive rem try when xor
+
+*** Boolean Algebra & Comparison operators
+erlang 的逻辑操作有
++ and 与 左右都会 evaluate
++ or 或 左右都会 evaluate
++ xor 异或
++ not 非
++ andalso 与,如果左值为 false, 不 evaluate 右值
++ orelse 或,如果左值为 true, 不 evaluate 右值
+
+测试操作符
++ =:= 相等测试 (== for c)
++ =/= 不等测试 (!= for c)
++ == 忽略类型 比较值 (5 == 5.0  true)
++ /= 忽略类型 比较值 (5 /= 5.0  false)
+
+不同类型的比较关系如下
+*number < atom < reference < fun < port < pid < tuple < list < bit string*
+
+
+*** Tuples
+Tuples 是元组, 用 *大括号({})包裹*
+
+如何得到元组中元素的值呢? 答案是赋值操作.erlang会将右侧的元组展开,赋值给左侧的元组元素
+元组展开赋值必须保证等号两侧的元组具有相同的元素个数,否则会报错
+#+begin_src, erlang
+>Point = {1,2}
+> {X,Y} = Point
+> X
+1
+> Y
+2
+> {W,_} = Point
+> W
+1
+> {Y} = Point
+**exception error: no match of right hand side value {1,2}
+#+end_src
+
+元组的使用,要结合 erlang 的赋值/比较操作
+#+begin_src, erlang
+> PreciseTemperature = {celsius, 23.213}
+> {kelvin, T} = PreciseTemperature
+**exception error: no match ...
+#+end_Src
+如果接收元组的第一个元素是 atom celsius, 则 T 变量接收温度值成功......
+
+此种方式的元组被称为 "tagged tuple"
+
+tuple 也可以作为 tuple 的元素
+
+
+*** Lists
+lists 可以存储任何类型,不同类型的元素可以在一个数组中
+使用 *中括号[]包裹* 创建 lists
+
+erlang中string也是lists,是字符的lists
+erlang认为整数lists不是string,必须保证lists中至少有一个整数不是字母的整数值
+
+lists 的操作
++ ++ 连接两个list, 不去重,不排序. 多个 ++ 在一个表达式中时,计算从最右端开始
++ -- 将右侧的list从左侧删除, 不考虑元素顺序, 有就删,  多个 -- 在一个表达式中时,计算从最右端开始
++ hd(list) 返回list的第一个元素
++ tl(list) 返回list的最后一个元素
++ length(list) 返回list的长度
++ [element|list] 在list上追加一个element元素作为head
+
+在 erlang 中 [Head|Tail] 是 list 的标准写法, 如果 Tail 也是 list, 则称之为 proper list, 否则为 improper list, 如 "[1|2]" vs "[1|[2\]]"
+
+*** List Comprehension
+试想{2*n: n in [1,2,3,4]} 得到集合 [2,4,6,8]
+在erlang中使用 *[2*N || N <- [1,2,3,4]].* 来表达 (N 是变量,必须大写开始)
+
+*<-* 与 *=* 含义相同,只是不会抛出异常信息
+
+还可以增加过滤条件, *[2*N || N <- [1,2,3,4], N rem 3 =:= 2]*
+
+标准的写法是: *NewList = [Expression || Pattern <- list, Pattern <- list, ... , cond1, cond2, ...]*
+
+可以写多个条件,用","分隔, 所有条件都符合的被选中
+
+其中 *Pattern <- list* 被称为 *Generator expression*, 也可以有多个
+
+
+*** Bit Syntax
+和list类似,使用 *书名号(<<>>)包裹* 表示bit位序列
+
+操作
++ bsr  :: bit shift right
++ bsl  :: bit shift left
++ band :: bit and
++ bor  :: bit or
++ bxor :: bit xor
+
+支持 Bit Comprehension 语法同list comprehension
+
+#+begin_src, erlang
+> Pixels = << 213,45,123,54,33,23>>. % Pixels是6byte bit tuple
+> <<Pix1:24,Pix2:24>> = Pixels.      % 将Pixels分解为2个bit tuple, 24bit一个, Pix1 输出并不是以 bit set方式输出,而是整数,可能是24bit在erlang中被看作是整形啥的!!!
+> <<Pix3:8,Pix4/binary>> = Pixels.   % 将Pixels分解为2个bit tuple, 8位第一个,剩下的一个. Pix4输出是bit tuple形式的
+#+end_src
+
+
+分解方式和tuple极其相似, 也支持类似tuple Generator Expression 的语法
+
+bit tuple 的分解语法可以表达为:
+*<<Variable:Size, Variable/TypeSpecifierList, Value:Size/TypeSpecifierList>> = <<Bit Syntax>>* 三种形式
++ Type :: 可以是 integer, float, binary(bytes), bitstring(bits), utf8/16/32; 默认是integer
++ Signedness :: 可以是 signed, unsigned, 只对 Type == integer 有效, 默认是unsigned
++ Endianness :: 多字节序, 可以是 big, little, native; 对多字节有效(integer,float,utf16/32). 多字节时是大端(big-endian低位高地址)还是小端(little-endian低位低地址). 如4byte数值72, big-endian <<0,0,0,72>>, little-endian<<72,0,0,0>>; 默认是 big-endian
++ Unit :: 格式是 (unit:integer) integer表示bit位长度,如(unit:4)表示4bit,范围是1~256
+
+当使用TypeSpecifierList时,使用 *-* 分隔类型, 如:
+*<<X/integer-signed-little>> = <<-44>*
+
+字符串可以时存在 list 中, 也可以存在 bit list 中,
+list是链表结构,而 bit list 是c的数组, 使用 <<"string">>的方式
+<<"this is a bit string">>
+
+***** TODO different of string in atom, list, bit list <2016-04-10 Sun 15:16>
+
+
+**** TODO Bit Comprehension <2016-04-10 Sun 01:40>
+与 *[Expression || Pattern <- list, Pattern <- list, ..., Cond1, Cond2, ...]*
+相似, 其格式为:
+*[Expression || <<Pattern>> <= bit list, ..., Cond1, ...]*
+
+区别是把 *<-* (匹配拆分[]) 替换为 *<=* (匹配拆分<<>>, 以binary stream 作为Generator)
+
+Generator 最外层的是 [] 表示生成的是 list, 如果是 <<>> 表示生成的是 bit list
+
+当 Generator 返回 bit list 时,需要明确指定接收类型,否则会报错
+#+begin_src, erlnag
+> RGB = [{R,G,B} || <<R:8, G:8, B:8>> <= Piexls].
+> << <<R:8, G:8, B:8>> || {R,G,B} <- RGB >>          % opposite operation of above action
+
+> << <<Bin>> || Bin <- [<<1,2,3,4,5>>] >>.          % 因为<<Bin>> 默认是integer,而源数据是5byte,所以错误
+**exception error: bad argument
+> << <<Bin/bytes>> || Bin <- [<<1,2,3,4,5,6>>] >>.  % OK
+
+> << <<(X+1)/integer>> || <<X>> <= <<3,4,5,6,7>> >>.
+<<4,5,6,7,8>>
+#+end_src
+
+
+
+** Modules 模块
+[[http://erlang.org/doc/reference_manual/modules.html]][erlang offical module manual]
+
+模块是特定功能的封装,提供对外服务的函数,相当与其他语言的 lib, package
+模块文件是erlang的代码文件,增加特定的说明.
+erlang代码文件以 *.erl* 结尾
+
+每个模块在编译时,erlang会将其metadata保存,并提供额外的函数 *module_info/0* 及 *module_info/1* 用于访问module的metadata
++ *module_info()* 返回modulde元数据, 用户定义的元数据在 attributes 列表中
++ *module_info(AttributeName)* 返回元数据中指定属性的值
+
+*** 模块声明
+模块中可以包含 **函数** 和 **属性**
++ attributes :: 属性是模块的元数据(metadata), 描述模块本身
++ functions  :: 模块提供的功能封装,可供模块内部或外部调用
+
+属性的格式是 *-Name(Attribute)* Name是属性名,Attribute是属性值.
+
+当前erlang的Module有大量的属性,用户也可以定义自己的属性. 一下列出的是预定义的属
++ *-module(Name).*
+  总是作为Module源文件中的第一个属性(首条语句).
+  Name定义了Module对外的名字(Name作为atom被存储).
+  外部使用 *M:F(A)* 的格式调用模块中的函数(M表示模块名,F表示模块的的函数,A表示函数的参数列表)
+
++ *-export([Func1/Arity, Func2/Arity])*
+  表示当前模块导出的函数列表, Func/Arity 表示 函数名/参数个数
+
++ *-import(Module, [Func1/Arity, Func2/Arity])*
+  导入的模块的函数列表, 默认情况下使用 M:F(A) 调用其他模块中的函数,如果使用 import 属性导入了 M 的 F/A 函数,则在本模块中可以直接使用 F(A) 调用 M:F(A). 不推荐使用!!!.
+
++ *-vsn(VersionNumber)* module的版本信息,编译后会自动生成一个唯一的编码,可用于hot-loading时标识需要替换的module
+
+创建module是要避免module间的循环引用,会导致代码维护困难
+
+*** 编译模块
+模块源文件 .erl 编译后默认在源文件目录下生成 .beam (Bogdan/Bjorn's Erlang Abstract Machine) 文件,包含VM byte code和native code.
+默认是当前目录下查找FileName
+
+**** os shell 命令
+*$erlc flags moduleFile.erl*
+
+**** erlang shell 命令
+*>compile:file(FileName, [flags])* 调用 compile模块的file/1函数. 默认是当前路径下查找FileName
+
+*c()* 在module内或erlang中
+
+**** 编译选项
+编译选项可以作为module的attribute写在源文件中,也可作为参数传递给编译命令.
+
+常用的编译选项有:
++ *-debug_info* 编译保留调试信息, erlang的调试器,代码检查分析工具会使用这些信息
++ *-{outdir,DIR}* 指定编译生成的beam文件的输出路径, 默认是当前路径
++ *-export_all* 到处module中的所有函数,忽略 *-export* 属性的值
++ *-{d,Macro}* or *-{d,Macro,Value}* 在module中定义Macro, Macro是atom. 默认Value是true. erlang的Macro相当与c的#define, 在编译时在源文件中的Macro被其值替换
+
+
+
+** 函数
+erlang的函数定义格式是:
+#+begin_src, erlang
+greet(male, Name)->
+  io:format("Hello, Mr. ~s!", Name);
+greet(female, Name)->
+  io:format("Hello, Mrs. ~s!", Name);
+greet(_, Name)->
+  io:format("Hello, ~s!", Name).
+#+end_Src
+
+erlang 的变量一旦绑定了值,就不可变了,所以不需要比较,直接使用模式匹配即可
+*_* 表示忽略变量的值
+*;* 表示函数未结束 (";"表示 orelse)
+*.* 表示结束
+
+再来一个
+#+begin_src, erlang
+function(X)->
+  Expression;
+function(Y)->
+  Expression;
+function(_)->
+  Expression.
+
+%% 开始时,X是未绑定变量,第一参数绑定至X, 当第二参数绑定至X时,X已是绑定变量
+%% 此时比较X与要绑定的值,如果相等,则模式匹配成功,返回true
+%% 如果不相等,则报错,模式匹配失败,执行第二个模式匹配,
+%% 第二模式匹配始终成功,所以返回false
+same(X,X)->  % 如果接收时是同一个值,赋值成功,可以接收,否则报错
+  true;
+same(_,_)->  % 否则返回false
+  false.
+
+
+%% 正确的参数格式是 {{A,B,C},{D,E,F}}
+%% 在分解时, 可以再次使用 = 赋值,表达式的结果不变
+%% 此处将 第一个tuple赋值给Data, 第二个tuple赋值给Time
+valid_time({Date = {Y,M,D}, Time = {H,Min,S}})->
+  io:format("Date(~p):~p-~p-~p; Time(~p) is: ~p:~p:~p!~n", [Date,Y,M,D, Time,H,Min,S]);
+valid_time(_)->
+  io:format("Wrong format!~n").
+#+end_src
+
+
+*** Guards
+Guards是额外的语句,可以在函数头部进行模式匹配更像详细的说明.
+如上面例子中,赋值匹配不能限制数值范围,类型等, 使用Guards可以进行范围匹配
+
+#+begin_src, erlang
+old_enough(X) when X >= 16 -> true;
+old_enough(_) -> false.
+
+right_age(X) when X >= 16, X <= 104 -> true;  % X >= 16 and x <= 104
+right_age(_) -> false.
+
+wrong_age(X) when X < 16; X > 104 -> true;
+wrong_age(_) -> false.
+#+end_src
+
+Guards紧随函数参数列表, 对参数进行逻辑判断, 格式为:
+*func(A) when Expression [,; Expression] -> funcBody;...*
++ *Expression* 是验证入参的表达式, 可以指定多个表达式
++ *,* 分隔的表达式是逻辑与的关系 (andalso)
++ *;* 分隔的表达式是逻辑或的关系 (orelse)
++ *A*B/C >=0* 可以使用其他计算表达式
++ 使用类型检查函数 is_integer/1, is_atom/1, 不能使用用户自定的函数. (erlang不是纯函数式编程语言, Haskell是)
+
+*Note*
+Guards 中的 *,* 和 *;* 与 andalso 和 orelse 并不完全相同
++ *,* 和 *;* 在表达式抛出异常时,可以正常进行下一个表达式的匹配
++ andalso 和 orelse 在表达式抛出异常时,会终止匹配,不会尝试后面的表达式
++ andalso 和 orelse 在Guards中可以嵌套, *,* 和 *;* 不能嵌套
+  + *when (A orelse B) andalso C* OK!!!
+  + *when (A orelse B), C* OK!!!
+  + *when (A, B); C* Error!!!
++ 如果表达式不抛出异常,他们一样!!!
+
+
+*** if (Guards Pattern)
+和 Guards 不同, if 是在函数体内的模式匹配,其语法格式是:
+#+begin_src, erlang
+heh_find() ->
+  if 1 =:= 1 ->
+    work
+  end,
+  if 1 =:=2; 1 =:= 1 ->
+    work
+  end,
+  if 1 =:= 2, 1 =:= 1 ->
+    fails
+  end.
+
+
+okGod(X) ->
+  Score =
+  if X > 100 -> "A+";
+     X > 90  -> "A";
+     X > 80  -> "B";
+     X > 70  -> "C";
+     X > 60  -> "C-";
+     true    -> "OUT"
+  end,
+  {"Your score is " ++ Score ++ "!!!", X}.
+
+
+#+end_src
+其中每个 if 会对参数进行匹配,所有if匹配成功,返回最后的表达式值作为函数值
+(最后的表达式一定是以 *.* 结尾的, 其他的表达式以 *,* 结尾, 会被计算, 但不返回)
+三个 if 块之间用 *,* 分隔, 如果用 *;* 则不需要三个 if, 一个if就够了
+
+以上的代码之所以报警时因为if可能不匹配所有情况, 导致函数没有表达式作为返回值
+erlang没有返回值的函数是错误的,因此调用函数会抛出异常.
+
+函数的返回值是最后计算的表达式的值,没有逻辑判断情况下 *,* 被视为是语句的连接.
+
+
+*** case of
+还有一种模式判断是 *case Expression of*
+#+begin_src, erlang
+insert（X, []) -> [X];
+insert(X, Set) ->
+  case list:member(X,Set) of
+    true -> Set;
+    false -> [X|Set]
+  end.
+
+beach(T) ->
+  case T of
+    {celsius, N} when N >= 20, N =< 45 -> 'favorable';
+    {kelvin, N} when N >= 293, N =<318 -> 'scientificaly favorable';
+    {fahrenheit, N} when N >= 68, N =< 113 -> 'favorable in the US';
+    _ -> 'avoid beach'
+  end.
+
+
+%% 同上，使用 Guards 而非 case
+beachf({celsius, N}) when N >= 20, N =< 45 -> 'favorable';
+beachf({kelvin, N}) when N >= 293, N =< 318 -> 'scientifically favorable';
+beachf({fahrenheit, N}) when N >= 68, N =< 113 -> 'favorable in the US'.
+
+#+end_src
+
+使用 *if* 或 *case of* 或 *Guards* 在效率上区别不大,主要看 clean code!!!
+
+
+*** io:format/1
+format 接受字符串格式说明及参数, 字符串格式说明中 ~ 代表转意字符
++ ~[-][n]s 表示字符串
++ ~n 表示新行
++ ~p print an Erlang term in a nice way (自动格式)
++ ~[-][n]f float pint 格式
++ ~[-][n] 是用n作为最小宽度打印, 默认是右对齐, - 表示左对齐
+
+
+<<<<<<< HEAD
+** recursion
+因为 erlang 没有循环语句，因此使用递归调用来实现循环。
+递归有两种：
++ 普通递归 recursion, 返回语句是一个有递归调用的表达式
++ 尾部递归 tail recursion，返回语句是一个递归函数调用，不是表达式(没有临时变量)
+
+这两种的递归的区别除了临时变量外，效率上没有太大差别（临时变量在递归层级多时是个效率问题）
+尾部递归(tail recursion) 将递归的结束条件作为参数返回，并在每次迭代时将本次迭代的计算结果与结束结果计算成新的结果，作为参数传递给下一次迭代
+这个参数被称为 Accumulator
+=======
+
+** Type
+Erlang属于
++ 动态类型语言 (变量不需要说明其类型)
++ 属于强类型语言 (不同类型的变量之间的运算不会自动转换,会报错)
+
+
+*** 类型转换
+Erlang使用内建函数做类型转换, 这类函数名以 <type>_to_<type> 存在,如
++ erlang:list_to_integer("54"). 54
++ erlang:integer_to_list(54). "54"
++ erlang:list_to_integer("54.32"). error
++ erlang:list_to_float("54.32"). 54.32
++ erlang:atom_to_list(true). "true"
++ erlang:list_to_bitstring("54"), <<"54">>
++ erlang:bitstring_to_list(<<"hi there">>) "hi there"
+
+
+*** 类型检查函数
+Erlang的类型检查函数名以 is_<type> 存在, 如:
+#+begin_quote
+is_bitstring, is_boolean, is_builtin/3, is_atom, is_binary
+...
+#+end_quote
+这些函数可以用在 Guards 中
+
+
+
+** 递归 <2016-04-12 Tue 07:13>
+[[http://learnyousomeerlang.com/recursion][Recursion]]
+
+
+>>>>>>> f223619a15e9533ea18593debb1dda17d4637019

@@ -1,0 +1,235 @@
+
+
+* The Go Programming Language
+
+** Program Structure <2016-04-05 二 11:26>
+
+*** Names 
+名字可以由字母(任何unicode字母都可以)或下划线开始的,后接数字或字母组成.
+
+go的保留字有:
++ break
++ default
++ func
++ interface
++ select
++ case
++ defer
++ go
++ map
++ struct
++ chan
++ else
++ goto
++ package
++ switch
++ const
++ fallthrough
++ if
++ range
++ type
++ continue
++ for
++ import
++ return
++ var
+
+内建类型
+常量:
++ true false
++ iota
++ nil
+
+类型:
++ int int8 int16 int32 int64
++ uint uint8 uint16 uint32 uint64 uintptr
++ float32 float64 complex128 complex64
++ bool byte rune(int32) string error
+
+函数:
++ make
++ len
++ cap
++ new
++ append
++ copy
++ close
++ delete
++ complex real img
++ panic recover
+
+名字的首字母的大小写决定他的(package)可见性.
+如果名字以大写字母开头,则名字是导出的(exported),意味着在包的外部可见,可访问.
+包的名字使用小写字母.
+go倾向使用"camel case"(驼峰式)命名规则
+
+
+*** Declarations 声明 
+有四种声明:
++ var
++ const 
++ type
++ func
+
+
+*** Variables
+变量声明使用 *var*
+var name type = expression
+*= expression* 或 *type* 可以被省略,但不能都省略
+*type* 省略,则类型由 *= expression* 推导出
+*= expression* 省略,则使用 *type* 类型的 *零* 值初始化变量
+
+可以一次声明多个变量
+#+begin_src, go
+var i, j, k int
+var b, f, s = true, 2.3, "four"
+#+end_src
+
+
+**** Short Variable Declarations
+可以不是用 *var* 声明,使用 *name := expression* 直接赋值声明
+如果 *name* 已经在 *var* 中声明过, *:= expression* 就等于赋值
+使用此种声明时,至少要有一个变量被声明.否则会报错
+
+
+**** Pointer
+每个变量都有 *address* 也就有指针. 使用指针,我们可以间接修改变量的值.
+和 *C* 语言一样,使用 *&* 获取变量地址,使用 *\** 访问地址的值
+#+begin_src, golang
+var x int = 10 
+pX := &x        // 取 x 的地址
+*pX = 11        // 相当于 x = 11
+
+#+end_src
+
+从函数返回本地变量的地址是安全的,以为内go有自己的垃圾回收机制!!!
+
+go不提供指针运算,pX++相当于(*pX)++
+
+***** flag package
+flag package用指针实现解析命令行参数
+
+#+begin_src, golang
+package main
+
+import (
+    "flag"
+    "fmt"
+    "strings"
+)
+
+var n = flag.Bool("n", false, "omit trailing newline")  // n 是指向 bool 类型的指针
+var sep = flag.String("s", " ", "separator")            // sep 是指向 string 类型的指针
+
+func main() {
+    flag.Parse()
+    fmt.Print(strings.Join(flag.Args(), *sep))  // 其它命令行参数在 flag.Args() 中, 为 []string 类型
+    if !*n {
+        fmt.Println()
+    }
+}
+#+end_src
+
+
+**** The new function
+使用 *new(T)* 可以创建一个 *T* 类型的变量,使用 *T* 类型的 *零* 值初始化它,并返回变量的指针.
+*p := new(T)* *p* 是 *\*T* 类型的变量.(与将函数的临时变量地址返回含义相同!!!)
+
+每次调用 *new(T)* 都会返回新的地址,例外是:
++ 对于无类型信息的类型(*struct{}*)或长度为零的数组(*\[0\]int*),可能返回相同的地址.结果依赖与go的具体实现
+
+
+*** Assignment
+
+**** Tuple Assignment
+元组赋值,所有右侧的表达式在任意左侧的变量更新前被计算,左侧变量被赋值前,右侧都为常量
+
+返回多值的函数使用元组赋值时,左侧变量数量必须等于返回结果数量
+一般是返回值,返回状态(value, isOK)
+常见的多值返回有:
+#+begin_src, golang
+v, ok = m[key]  // 数组查询 数组是否有key索引
+v, ok = x.(T)   // 类型检查 变量x是否是T类型
+v, ok = <-ch    // channel 读取, channel 是否关闭
+#+end_src
+
+可以使用 *_* 接受不想要的值
+#+begin_src, golang
+_, err = io.Copy(dst, src)
+_, ok = x.(T)
+#+end_src
+
+**** TODO Assignability <2016-04-06 三 14:39> 
+可赋值需要等号左右有相同的类型
+可赋值是相等比较(== !=)的基础
+
+*** Type Declarations
+类型生命使用 *type name underlying-type*
+*type* 是关键字, *name* 是新类型名称, *underlying-type* 是已有类型名称
+相当与 underlying-type 的别名,但在go中不能赋值(type不同),可以绑定不同的操作
+
+
+
+*** Packages and Files
+package子go中相当于其他语言中的库或模块(libraries or modules)
+package提供的是模块化,封装,分离编译和重用(modularity, encapsulation, separate compilation and reuse)
+package通常由一个或多个.go文件组成,在同一个package目录下(用做import的导入路径),
+如: "gopl.io/ch1/helloworld" package 存放在 "$GOPATH/src/gopl.io/ch1/helloworld" 目录下
+
+每个package有自己的命名空间(使用 *package packagename* 指定)
+我们创建一个 tempconv 包, 目录是 "gopl.io/ch2/tempcomv"
+在其下闯将2个文件 "tempconv.go" & "conv.go"
+他们都使用 "package tempconv" 作为包名
+
+
+**** Import
+使用上面定义的package
+#+begin_src, golang
+package main
+
+import (
+    "fmt"
+    "os"
+    "strconv"
+
+    "gopl.io/ch2/tempconv"  // 导入包 tempconv
+)
+
+func main() {
+    t := strconv.ParseFloat(os.Args[1], 64)
+    f := tempconv.Fahrenheit(t)  // 使用 tempconv.Fahrenheit 在 tempconv.go中定义
+    c := tempconv.Celsius(t)
+    fmt.Println("%s, %s" tempconv.CToF(c), tempconv.FToC(f))  // 使用在 conv.go 中定义的函数
+}
+#+end_src
+默认情况下,包路径的最后一段表示包的名字.
+
+
+**** Package Initialization
+package初始化始于package范围便来的初始化.
+多个.go文件的package初始化的顺序是按照.go文件被编译器读取的顺序初始化
+
+*init* 函数可以提供初始化时需要执行的其他操作.
+func init() {/* ... */}
+这个函数不能被显示的调用.当程序执行时, *init* 函数自动执行
+package的每个.go文件都可以包含一个 *init* 函数
+
+import 关键字导入的包以导入的顺序被初始化,它依赖的包也在此时以相同的规则初始化
+直到所有的导入包被初始化完成,才开始初始化 main 包. *因此 init 先于 main 被执行*
+
+
+*** Scope
+当使用 *:= expression* 赋值时,如果是范围赋值,
+此表达式倾向于创建新的局部变量来覆盖外部同名变量的可见性.
+#+begin_src, golang
+var cwd string
+func scopeTest() {
+   cwd, err := getCwd()  // cwd 是函数内的 local variable, 全局 cwd 不可见
+   for cwd, err := getCwd() {  // cwd 是 for 范围的 local variable, 函数范围 cwd 不可见
+   }
+}
+#+end_src
+
+
+*** function return <2016-04-06 三 17:29>
+有返回值的函数,必须提供 *return* 语句否则会编译错误
