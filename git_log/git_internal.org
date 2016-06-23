@@ -108,7 +108,7 @@ A branch in Git is nothing more than a file in the *.git/refs/heads/* directory 
 Git对象都是不可变的, Git引用类型是存储着指向不可变对象指针的对象, 随着指向内容的变化而改变.
 
 引用类型的例子是 *branch(分支)* 和 *remotes(外部源)*
-Branch对象保存在 *.git/refs/heads/* 目录下. 保存着指向此分支最有一个commit的指针(SHA-1标示). 当在此分支上不断提交时, 当前branch的commit指针指向最后一次commit的SHA-1，其他没有变化(branch名字等).
+Branch对象保存在 *.git/refs/heads/* 目录下. 保存着指向此分支最后一个commit的指针(SHA-1标示). 当在此分支上不断提交时, 当前branch的commit指针指向最后一次commit, 其他没有变化(branch名字等).
 
 
 *** The Model
