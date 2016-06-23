@@ -51,7 +51,7 @@ the tools can be more or less divided into two major camps, often refered to as 
 ** GIT OBJECT TYPES
 git objects are the actual data of git, the main thing that the repository is made up of. there are four main object types in git, the first three being the most important to really understand the main functions of git.
 
-Git的对象用于存储的提交的数据, repository实际是由Git对象构成的. Git共有4种类型的对象,理解前三种对象可以帮助我们领会Git的工作原理.
+Git的对象用于存储提交的数据, repository实际是由Git对象构成的. Git共有4种类型的对象,理解前三种对象可以帮助我们领会Git的工作原理.
 
 all of these types of objects are stored in the git *object database*, which is kept in the *git directory*. each object is compressed (with zlib) and referenced by the sha-1 value of its contents plus a small header.
 
@@ -66,7 +66,8 @@ Git将对象存储在repository的目录下名为 *.git* 目录中, 我们称其
                     *commit*: a11bef
 #+end_quote
 
-+ THE BLOB
++ THE Blob
+
   In Git, the contents of files are stored as *blobs*.
   It is important to note that it is the contents that are stored, not the files. The names and modes of the files are not stored with the blob, just the contents.
   This means that if you have two files anywhere in your project that are exactly the same, even if they have different names, Git will only store the blob once. This also means that during repository transfers, such as clones or fetches, Git will only transfer the blob once, then expand it out into multiple files upon checkout.
@@ -76,6 +77,7 @@ Git将对象存储在repository的目录下名为 *.git* 目录中, 我们称其
   如果有两个内容相同的文件，即使他们的文件名不同，所在位置不同，Git只保存一份文件内容的Blob数据在仓库里. 当需要使用时，将他们从Blob中解开, 生成对应的文件。
 
 + The Tree
+
   Dictories in Git basically correspend to *trees*.
   A tree is a simple list of trees and blobs that the tree contains, along whit the names and modes of those trees and blobs. The contents section of a tree object consists of a very simple text file that lists the mode, type, name and sha of each entry.
 
@@ -83,6 +85,7 @@ Git将对象存储在repository的目录下名为 *.git* 目录中, 我们称其
   tree包含其目录下的其他目录tree及文件的blob信息,包含他们的name和mode(以及指向对应blob的指针).
 
 + The Commit
+
   So, now that we can store arbitrary trees of content in Git, where does the 'history' part of 'tree history storage system' come in? The answer is the *commit* object.
   The commit is very simple, much like the tree, It simply points to a tree and keeps an author, committer, message and any parent commits that directly preceded it.
 
@@ -90,7 +93,9 @@ Git将对象存储在repository的目录下名为 *.git* 目录中, 我们称其
   通常情况下一个commit只有一个parent commit，如果当前版本是从其他分支merge过来的, 则可能出现多个parent commit的信息.
 
 + The Tag
+
   *Tag* is the final type of object you will find in a Git database. This is an object that provides a permanent shorthand name for a particular commit. It contains an object, type, tag, tagger and a message. Normally the type is *commit* and the object is the SHA-1 of the commit you're tagging. The tag can also be GPG signed, providing cryptographic integrity to a release or version.
+
   Tag是最后一个Git对象类型，他是特定commit的持久的引用, 包含commit的信息(commit SHA-1 signature), tag(标签名称), message(标签的描述)及打标签的用户信息.
 
 
