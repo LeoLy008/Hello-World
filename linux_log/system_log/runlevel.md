@@ -1,4 +1,5 @@
 # run level
+2016-06-26
 runlevel 表示当前系统的运行级别, 可以使用``runlevel``命令查询系统的当前运行级别
 
 linux的运行级别为:
