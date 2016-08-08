@@ -55,28 +55,29 @@ append增加slice的长度
 *copy(dst, src)* 将src复制到dst中
 
 *** Maps
-map是key-value的hash table,无序.
-使用key从表中获取value用时平均.
-map是引用类型
-*map[K]V* K表示索引的类型,V表示值的类型
-K类型必须是可用==比较的类型.
-比较浮点数是否相等是个坏主意.
+map是 =key-value= 的 =hash table=,无序.\b
+使用 =key= 从表中获取 =value= 用时平均.\b
+map是引用类型\b
+=map[K]V=, *K* 表示索引的类型, *V* 表示值的类型\b
+=K= 类型必须是可用 ~==~ 比较的类型.\b
+比较浮点数是否相等是个坏主意.\b
 
-使用内建make函数创建map
-*a := make(map[string]int)*
-*a := map[string]int{"2":1, "1":2}*
+使用内建 =make= 函数创建 =map=
 
-使用内建的delete函数删除特定元素
-*delete(a, "1")*
-*delete(map, key)*
+~a := make(map[string]int)~
+~a := map[string]int{"2":1, "1":2}~
+
+使用内建的 =delete= 函数删除特定元素
+=delete(a, "1")=
+=delete(map, key)=
 如果map没有key索引,不会产生错误
 
 map的元素不是变量,我们不能取map特定元素的引用/地址
-*val := &map["key"]* 取map["key"]的地址,错误
+~val := &map["key"]~ 取 =map["key"]= 的地址,错误
 
 map声明后是空的(nil),需要显示分配空间(make or {}),否则向map内添加元素将报错
 map的迭代操作是无序的,如果需要有序的访问他,应当对key排序后进行
 
 从map中使用key获取value始终会返回值,如果key不存在,返回value类型的零值,同时返回false
-*v, ok := map["key"]*
-如果 *ok == true* 表示key索引存在
+~v, ok := map["key"]~
+如果 ~ok == true~ 表示 =key= 索引存在
