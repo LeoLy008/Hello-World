@@ -48,7 +48,7 @@ Go strings are made up of individual bytes (utf-8)<br>
 String can be created using
 - **double quotes** `""`<br>
   can't contain newlines and they allow special escape sequences<br>
-  as `\n` is newline, `\t` si tab
+  as `\n` is newline, `\t` is tab
 - **back ticks** <code>\`\`</code><br>
   can contain any character and will not be escaped
 

@@ -59,8 +59,11 @@ go的保留字有:
 + panic recover
 
 名字的首字母的大小写决定他的(package)可见性.
+
 如果名字以大写字母开头,则名字是导出的(exported),意味着在包的外部可见,可访问.
+
 包的名字使用小写字母.
+
 go倾向使用"camel case"(驼峰式)命名规则
 
 
@@ -74,10 +77,14 @@ go倾向使用"camel case"(驼峰式)命名规则
 
 *** Variables
 变量声明使用 *var*
-var name type = expression
-*= expression* 或 *type* 可以被省略,但不能都省略
-*type* 省略,则类型由 *= expression* 推导出
-*= expression* 省略,则使用 *type* 类型的 *零* 值初始化变量
+
+=var name type = expression=
+
+_= expression_ 或 =type= 可以被省略,但不能都省略
+
+=type= 省略,则类型由 == expression= 推导出
+
+_= expression_ 省略,则使用 =type= 类型的 *零* 值初始化变量
 
 可以一次声明多个变量
 #+begin_src, go
@@ -88,23 +95,25 @@ var b, f, s = true, 2.3, "four"
 
 **** Short Variable Declarations
 可以不是用 *var* 声明,使用 *name := expression* 直接赋值声明
-如果 *name* 已经在 *var* 中声明过, *:= expression* 就等于赋值
+
+如果 *name* 已经在 *var* 中声明过, _:= expression_ 就等于赋值
+
 使用此种声明时,至少要有一个变量被声明.否则会报错
 
 
 **** Pointer
 每个变量都有 *address* 也就有指针. 使用指针,我们可以间接修改变量的值.
-和 *C* 语言一样,使用 *&* 获取变量地址,使用 *\** 访问地址的值
+
+和 *C* 语言一样,使用 =&= 获取变量地址,使用 =*= 访问地址的值
 #+begin_src, golang
 var x int = 10 
 pX := &x        // 取 x 的地址
 *pX = 11        // 相当于 x = 11
-
 #+end_src
 
-从函数返回本地变量的地址是安全的,以为内go有自己的垃圾回收机制!!!
+从函数返回本地变量的地址是安全的,因为go有自己的垃圾回收机制!!!
 
-go不提供指针运算,pX++相当于(*pX)++
+go不提供指针运算, =pX++= 表示 =(*pX)++=, 指针会被转化为其指向的变量, 再进行 =++= 运算
 
 ***** flag package
 flag package用指针实现解析命令行参数
