@@ -201,7 +201,7 @@ golang 默认使用传值调用函数，如果想在被调用函数中修改输�
 ## Packages
 > Don't Repeat Yourself
 
-Three purposes
+Three purposes<br>
 1. reduces the chance of having overlapping names
 2. organizes code, reuse code
 3. speeds up compiler, only compile chunks changed
