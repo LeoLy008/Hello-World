@@ -41,3 +41,12 @@
 
 6. Done
 
+
+## 添加 ssh-key
+1. 启动 `ssh-agent`
+  ```
+  $ eval `ssh-agent -s`
+  $ ssh-add your-ssh-file
+  $ ssh git@github.com
+
+
