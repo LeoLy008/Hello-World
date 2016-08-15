@@ -1,0 +1,18 @@
+* lisp笔记
+
+[[http://smacs.github.io/elisp/][emacs lisp简明教程]] (C-c C-l编辑link)
+
+** lisp 环境
+1) =emacs= 的 =lisp= 环境需要切换到 =*scratch*= 缓冲中 (=C-x b= 选中 *scrtch*  buffer)
+2) 进入之后，切换到 =lisp-interaction-mode= (=M-x lisp-interaction-mode=)
+  lisp-interaction-mode 会将当前选中的lisp表达式的结果输出的当前行的后面
+3) 移动到表达式的尾部，使用 *C-j* 执行表达式， *C-j* 只有在 =lisp-interaction-mode= 中可用
+4) 也可以使用 *C-x C-e* 在任意 =lisp= 表达式尾部求值，结果会在 =emacs= 的 =Minibuffer= 中显示
+
+
+** 表达式求值的 *结果* 及 *返回值*
+如果对 =(message "hello, world")= 求值(=C-x C-e= or =C-j=)
+1) 会在 =Minibuffer= 中得到 =hello, world=
+2) 同时在 =*scratch*= 本行表达式的后面会插入一行 =*hello, world*=
+其中 =1)= 是表达式求值的结果/效果(在 *Minibuffer* 中输出消息)； =2)= 是表达式的返回值 *"hello, world"*
+

@@ -1,0 +1,12 @@
+* emacs
+** initialization
+emacs initialize file is a Lisp program, the default user init file is:
+1) *~/.emacs*
+2) *~/.emacs.el*
+3) *~/.emacs.d/init.el*
+
+there two other initlialize file, both of them are located at *Standard Search Path For Lisp Libraries*
+1) *site-start.el*
+  This is the first file emacs load when initialize, then load user initialize file above
+2) **
+

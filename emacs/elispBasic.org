@@ -1,0 +1,182 @@
+
+* 基础知识
+包含
+1) 函数定义
+2) 控制结构
+3) 变量及其作用域
+4) 等等
+
+
+** 函数和变量
+elisp的函数定义：
+#+begin_src emacs-lisp
+(defun function-name (arguments-list)
+  "document string"
+  body)
+#+end_src
+
+如：
+#+begin_src emacs-lisp
+(defun hello-world (name)
+  "Say hello to user whose name is input."
+  (message "Hello, %s" name))
+#+end_src
+
+其中:
+1) 函数的文档字符串可以省略，不建议
+
+
+在 emacs 中，当光标处于一个函数名上时，可以用 =C-h f= 来查看这个函数的文档（文档字符串）
+如果函数是由 emcas-lisp 实现的，还可以调到函数的实现。
+
+*** 函数的调用
+函数调用的格式是： =(function-name arguments-list)=
+如： 
+#+begin_src emacs-lisp
+(hello-world "Emacser") ; => "Hello, Emacser"
+#+end_src
+
+每个函数都有返回值，一般是函数定义中最有一个表达式的值。
+
+
+*** 变量
+emacs-lisp 的变量无需定义可以直接使用 =setq= 赋值
+#+begin_src emacs-lisp
+(setq foo "I'm foo") ; => "I'm foo"
+(mesage foo)         ; => "I'm foo"
+#+end_src
+
+当光标在变量名上时，可以用是 =C-h v= 来查看变量的文档
+
+*** 变量特殊表达式
+使用 =defvar= 也可以声明变量，不同的是：
+1) 如果变量已经声明并赋值过，变量不发生任何变化， =defvar= 无效
+2) 可以提供变量的文档
+其格式为：
+#+begin_src emacs-lisp
+(defvar variable-name value
+  "document string")
+
+;; 如：
+（defvar foo "Did I have a value?"
+  "A demo variable")
+
+foo ; => "
+#+end_src
+
+
+emacs-lisp中
+1) *函数也是变量* ，函数是 *全局* 的
+2) 变量也很容易成为全局的，使用 =defvar= 可以减少冲突
+
+
+*** 局部作用域变量
+emacs 中使用 =let= 和 =let*= 定义局部变量，其格式为：
+#+begin_src emacs-lisp
+(let (bindings)
+  body)
+#+end_src
+*bindings*可以是 =(var value)= 这样对 *var* 赋初始值的形式，也可以是 =(var)= 的形式，则默认是 *nil*
+#+begin_src emacs-lisp
+(defun circle-area (radius)
+  "calculate circule area according to the input radius value"
+  (let ((pi 3.1415926)
+        area)
+     (setq area (* pi radius radius))
+     (message "the circle area with radius: %.2f is: %.2f" radius area)
+  )
+)
+#+end_src
+
+=let= 和 =let*= 的区别是 =let*= 可以使用之前声明的变量, 如:
+#+begin_src emacs-lisp
+(defun circle-area (radius)
+  "calculate circule area according to the input radius value"
+  (let* ((pi 3.1415926)
+         (area (* pi radius radius))
+     (message "the circle area with radius: %.2f is: %.2f" radius area)
+  )
+)
+#+end_src
+
+从实验结果上看，函数定义内的 =let= 表达式的 =body= 没有实际意义， =let= 外侧也可以访问到局部变量，只要在函数内即可
+
+
+*** lambda表达式
+emacs lisp的lambda表达式格式为：
+#+begin_src emacs lisp
+(lambda (arguments-list)
+  "documentation string"
+  body)
+#+end_src
+
+调用 lambda的方法：
+#+begin_src emacs-lisp
+(funcall (lambda (name)
+           (message "Hello, %s!" name)) "Emacser")
+#+end_src
+
+可以将lambda赋值给变量
+#+begin_src emacs-lisp
+(setq foo (lambda (arguments)
+             "lambda that will set to foo"
+             (message "This is a lambda store in a variable! arg:[%s]" arguments)))
+(funcall foo "I am the argument")
+#+end_src
+
+
+** 控制结构
+
+*** 顺序结构
+一般都是按照表达式的顺序执行。
+但在一些情况下只能执行一个表达式，如：
+1) =eval-last-sexp= 只能执行一个表达式
+2) =if= 的条件为真时，只能执行一个表达式
+此时可以用 =progn= 来执行多个表达式 =(progn A B C ...)=
+其作用是让 *A B C* 这三个表达式顺序执行
+
+
+*** 条件判断
+有2个基本的条件判断
+1) if
+2) cond
+格式如下：
+#+begin_src emacs-lisp
+(if condition
+    then
+  else)
+
+(cond (case1 do-when-case1)
+      (case2 do-when-case2)
+      ...
+      (t do-when-non-meet))
+
+#+end_src
+
+使用示例：
+#+begin_src emacs-lisp
+(defun my-max (a b)
+  "return the bigger one from the inputs"
+  (if (> a b)
+      a
+      b)
+)
+(my-max 3 4)  ; => 4
+(my-max 4 3)  ; => 4
+
+
+(defun fib (n)
+  "get the value of fib sequence end with n"
+  (case ((= n 0) 0)
+        ((= n 1) 1)
+        (t (+ fib((- n 2)) fib((- n 1))
+           )
+        )
+   )
+)
+#+end_src
+
+
+*** 分支宏
+1) when 可以省去 =if= 中的 =progn= 结构, 没有 =else= 分支， =(when condition A B C)=
+2) unless 省去了条件为 =t= 需要的 *nil* 结构
