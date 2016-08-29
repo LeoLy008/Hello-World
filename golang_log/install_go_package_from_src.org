@@ -1,0 +1,24 @@
+
+* Install golang package from source
+<2016-08-29 一>
+
+if we can't install go package using ~go get xxx~ as the google is blocked bk GFW.
+we can get the source from git and install it manually.
+
+1) download the source package
+2) prepare path that match the package pathname under your $GOPATH/src dir
+3) change dir to the source path, run ~go install~
+4) Done
+
+
+** install redis.v4 package from source
+1) the recommand install method is ~go get gopkg.in/redis.v4~, because of the existance of GFW, we can't access google web site.
+2) download go/redis.v4 from github: ~https://github.com/go-redis/redis/archive/v4.zip~
+3) the required install path is: ~gopkg.in/redis.v4~, create path ~$GOPATH/src/gopgk.in/~, unzip the ~v4.zip~ under ~gopkg.in~ and rename to ~redis.v4~
+4) change dir to ~$GOPATH/src/gopkg.in/redis.v4/~ and run ~go install~ to compile and install package from source
+5) report missing package ~gopkg.in/bsm/ratelimit.v1~
+6) get ~ratelimit.v1~ from git: ~https://github.com/bsm/ratelimit/archive/master.zip~
+7) do the same as redis.v4, prepare related dirs for ratelimit.v1
+8) change dir to ~$GOPATH/src/gopkg.in/bsm/ratelimit.v1/~, run ~go install~, Done
+9) change dir to ~$GOPATH/src/gopkg.in/redis.v4/~, run ~go install~, Done
+10) Done
