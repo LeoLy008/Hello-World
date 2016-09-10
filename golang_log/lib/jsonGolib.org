@@ -56,9 +56,13 @@ func Unmarshal(jsonStr string, v interface{}) {
 *** Json转化时类型的 Tag 用法
 类型的字段 Tag 使用如下格式可被 json 包解析
 
+*Note* tag 字符串中逗号后不能带空格
+",string" 和 ",omitempty" 才是 ~tag~ 关键字, 
+使用 ", string" ", omitempty" json包解析时将不做对应的转换 
+*坑*
+
 **** 原理
-json 包内部使用 reflect 得到传入的 interface{} 内部类型, 字段信息, tag
-然后根据需求进行序列化
+json 包内部使用 reflect 得到传入的 interface{} 内部类型, 再通过反射得到内部类型的字段信息, 类型以及tag, 然后根据规则进行序列化
 反序列化同理
 
 **** 不导出字段
