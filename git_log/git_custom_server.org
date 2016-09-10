@@ -1,0 +1,21 @@
+
+
+* 连接自己搭建的 git server <2016-09-10 六>
+
+** 创建客户端的 ssh, 步骤不变
+
+** 添加登录的 ssh key
+1. 将客户端的 ssh public key 上传到服务端, 
+2. 将内容追加到 git 用户的 ./ssh/authorized 文件中
+   ~cat userSshPublicKey >> ~git/.ssh/authorized~
+3. 测试登录
+   ~@ ssh -T git@myGitServer~
+
+
+** 设置 git 工作目录
+1. 创建目录 ~mkdir yourPath~
+2. 下载工程
+   1. 创建新工程
+      ~TODO~
+   2. 下载已有工程
+      ~git clone git@myGitServer:/myGitRepositories~

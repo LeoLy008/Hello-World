@@ -1,0 +1,259 @@
+
+** <2016-09-05 一>
+
+** json
+package: ~encoding/json~
+
+*** 基础转化
+
+**** 将值转化为json的[]byte
+~json.Marshal(v interface{}) ([]byte, error)~
+
+**** 将[]byte数据转化为特定类型的数据, *v是特定类型的指针*
+~json.Unmarshal(d []byte, v interface{}), error~
+
+**** []byte to string
+var data []byte = []byte{}
+str := string(data)
+
+**** string to byte
+var str string = ""
+data := []byte(str)
+
+
+**** interface{} 的对象转化
+如果将type以interface{}的形式传入 json.Marshal(), 可以正常的将interface{}内实际的结构序列化出来
+如果要将 json string 反序列化成对象, 如果需要用 interface{} 包装实际的 type 类型, 需要保存在 interface{] 中的是 type 的指针:
+#+BEGIN_SRC golang
+type myJsonObj struct {
+    Name  string
+    Value string
+    Id    int
+    Email string
+    Blah  string
+}
+
+var v interface{} = &myJsonObj{}
+func Marshal(v interface{}) string {
+    bytes, err := json.Marshal(v)
+    if err != nil {
+        return ""
+    }
+    return string(bytes)
+}
+
+var v interface{} = &myJsonObj{}
+func Unmarshal(jsonStr string, v interface{}) {
+    err := json.Unmarshal([]byte(jsonStr), v)
+    if err != nil {
+        return nil
+    }
+    return v
+}
+
+#+END_SRC
+
+*** Json转化时类型的 Tag 用法
+类型的字段 Tag 使用如下格式可被 json 包解析
+
+**** 原理
+json 包内部使用 reflect 得到传入的 interface{} 内部类型, 字段信息, tag
+然后根据需求进行序列化
+反序列化同理
+
+**** 不导出字段
+#+BEGIN_SRC golang
+// Field is ignored by this package. 
+Field int `json:"-"`
+#+END_SRC
+
+**** 使用别名映射字段名
+#+BEGIN_SRC golang
+// Field appears in JSON as key "myName". 
+Field int `json:"myName"`
+#+END_SRC
+
+**** 如果字段值为空则不导出
+#+BEGIN_SRC golang
+// Field appears in JSON as key "myName" and
+// the field is omitted from the object if its value is empty,
+// as defined above.  
+Field int `json:"myName,omitempty"`
+
+// Field appears in JSON as key "Field" (the default), but
+// the field is skipped if empty.
+// Note the leading comma.
+Field int `json:",omitempty"`
+#+END_SRC
+
+**** 将字段的值按照string格式导出, 字段必须是 floating point, integer or boolean
+#+BEGIN_SRC golang
+// The "string" option signals that a field is stored as JSON inside a JSON-encoded string. 
+// It applies only to fields of string, floating point, integer, or boolean types.
+Int64String int64 `json:",string"`
+#+END_SRC
+
+
+*** example 
+#+BEGIN_SRC golang
+type SysRes struct {
+	Name string
+	Id	 int64     `json:",string"` // output as string
+	Subs []SysRes  //`json:",omitempty"`
+}
+
+func main() {
+	res := &SysRes{
+		"A", 1, nil,
+	}
+	resA := &SysRes{
+		"B", 2, nil,
+	}
+	res.Subs = append(res.Subs, *resA)
+
+	resJson, err := json.Marshal(res)
+	if err != nil {
+		log.Fatal("Marshal SysRes failed: %v", err)
+	}
+	resJsonStr := string(resJson)
+	log.Printf("resJson:%v", resJsonStr)
+
+	resC := new(SysRes)
+	if err := json.Unmarshal([]byte(resJsonStr), resC); err != nil {
+		log.Printf("Unmarshal string[%v] failed: %v\n", resJsonStr, err)
+	}
+	log.Printf("Unmarshal json object:%#v\n", *resC)
+}
+
+/* result:
+resJson:{"Name":"A","Id":"1","Subs":[{"Name":"B","Id":"2","Subs":null}]}
+Unmarshal json object:main.SysRes{Name:"A", Id:1, Subs:[]main.SysRes{main.SysRes{Name:"B", Id:2, Subs:[]main.SysRes(nil)}}}
+*/
+#+END_SRC
+
+** web server using net/http
+https://golang.org/doc/articles/wiki/
+
+http://www.cnblogs.com/yjf512/archive/2012/08/22/2650873.html
+
+服务主要使用 net/http/server.go
+
+*** 主要接口
+
+**** Handler 
+
+#+BEGIN_SRC golang
+type Handler interface {
+    ServeHTTP(ResponseWriter, *Request)
+}
+#+END_SRC
+
+响应请求的接口, Request 将作为参数传递给 ResponseWriter 接口的函数处理
+
+**** HandlerFunc
+HandlerFunc 是函数签名, 将其定义为类型是为了适配 ~Handler~ 接口
+此类型上实现了 ~Handler~ 接口:
+#+BEGIN_SRC golang
+type HandlerFunc func(ResponseWriter, *Request)
+
+func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *Request) {
+    f(w, r)
+}
+#+END_SRC
+
+*注意* 
+~HandlerFunc~ 是一个函数签名, 被定义为类型
+其上定义了一个函数 ~ServeHTTP~ 而此函数是 Handler 接口定义的唯一方法
+所以 ~HandlerFunc~ 必然满足 ~Handler~ 接口 
+
+#+BEGIN_SRC golang
+type A func(int, int) int
+
+func (f A) Serve(a, b int) {
+    fmt.Printf("Serve %#v; a:%v, b:%v, result:%v\n",
+        f, a, b, f(a, b))
+}
+
+// 因为 type A 实现了 Serve(int, int) 所有满足 TwoIntOperator 接口
+type TwoIntOperator interface {
+    Serve(int, int)
+}
+
+func add(a, b int) int {
+    return a + b
+}
+
+func subtract(a, b int) int {
+    return a - b
+}
+
+func multiple(a, b int) int {
+    return a * b
+}
+
+func main() {
+    a := []TwoIntOperator{add, subtract, multiple}
+    for _, servant := range a {
+        servant.Serve(10, 1)
+    }
+}
+#+END_SRC
+
+**** ServeMux 路由
+负责处理路由规则, 在 ServeMux中注册路由规则, 请求到来时根据规则分发到指定的 HandlerFunc 处理
+type ServeMux struct {
+    mu sync.RWMutex
+    m  map[string]muxEntry // 路由规则, string 是注册的路由表达式
+}
+
+
+**** ResponseWriter 生成Response的接口
+#+BEGIN_SRC golang
+type ResponseWriter interface {
+    Header() Header //返回 Response 的Header
+
+    Write([]byte) (int, error) // io.Writer 接口, 写响应
+
+    WriteHeader(int) // 写 Response Header
+}
+
+type Flusher interface {
+    Flush() // 将缓冲区内容推送出去
+}
+
+type Hijacker interface {
+    Hijack() (net.Conn, *bufio.ReadWriter, error) // 调用者可以主动管理连接
+}
+#+END_SRC
+
+***** response 结构
+#+BEGIN_SRC golang
+response 结构实现了 ResponseWriter 接口
+type response struct {
+    conn          *conn
+    req           *Request
+    chunking      bool
+    wroteHeader   bool
+    wroteContinue bool
+    header        Header
+    written       int64
+    contentLength int64
+    status        int
+    needSniff     bool
+
+    closeAfterReply bool
+
+    requestBodyLimitHit bool
+}
+
+// 实现了 ResponseWriter
+func (w *response) Header() Header
+func (w *response) WriteHeader(code int)
+func (w *response) Write(data []byte) (n int, err error)
+func (w *response) Flush()
+func (w *response) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error)
+#+END_SRC
+
+
+
+**** Conn 网络连接

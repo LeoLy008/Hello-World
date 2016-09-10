@@ -1,0 +1,443 @@
+
+** <2016-09-04 日>
+
+** 封装
+#+BEGIN_SRC golang
+package hubRedis
+
+import (
+	"gopkg.in/redis.v4"
+)
+
+type HubRedis struct {
+	*redis.Client   // 集成 redis.Client
+	Addr string     // redis 连接地址
+	Password string // redis 密码
+	DB int          // 连接的 redis DB ID
+	PoolSize int    // 连接池大小 不填默认为10
+}
+
+// 创建一个HUbRedis对象
+func NewHubRedis(addr, password string, db, poolSize int) *HubRedis {
+
+	redisOptions := &redis.Options{
+		Addr: addr,
+		Password: password,
+		DB: db,
+		PoolSize: poolSize,
+	}
+
+	client := redis.NewClient(redisOptions)
+	ret := &HubRedis{
+		client,
+		addr,
+		password,
+		db,
+		poolSize,
+	}
+
+	return ret
+}
+#+END_SRC
+
+*** usage
+#+BEGIN_SRC golang
+package main
+
+import (
+    "log"
+    "time"
+
+    "adhub/middleTiler/hubRedis"
+)
+
+func main() {
+    log.SetFlags(log.Lmicroseconds)
+    log.Printf("start")
+    defer func() {
+        if panicErr := recover(); panicErr != nil {
+            log.Printf("panic: %v\n", panicErr)
+        }   
+    }() 
+    redis := hubRedis.NewHubRedis("localhost:6379", "", 0, 100)
+    log.Printf("redis client: %#v\n", redis)
+    get := func(key string) error {
+        cmd := redis.Get(key) // cmd is StringCmd
+        log.Printf("%v\n", cmd)
+        return cmd.Err()
+    }   
+    set := func(key string, v interface{}) error {
+        cmd := redis.Set(key, v, 0) // cmd is StatusCmd
+        log.Printf("%v\n", cmd)
+        return cmd.Err()
+    }   
+    ping := func() error {
+        cmd := redis.Ping()
+        log.Printf("%v\n", cmd)
+        return cmd.Err()
+    }   
+
+    if err := ping(); err != nil {
+        log.Printf("Error:%v", err)
+        panic(err)
+    }   
+    go set("a", 1)
+    go set("b", 2)
+    go set("c", 3)
+    go get("a")
+    go get("a")
+    go get("b")
+    go get("b")
+    go get("c")
+    time.Sleep(time.Second * 5)
+}
+
+#+END_SRC
+** Redis go library
+
+** gopkg.in/redis.v4
+google官方的包, 引用 ~gopkg.in/redis.v4~, 包名是 ~redis~
+
+*** source read
+
+**** Options
+#+BEGIN_SRC golang
+// file: options.go
+
+type Options struct {
+    ...
+    Network string
+    Addr    string
+
+    Dialer  func() (net.Conn, error)
+
+    Password string
+    DB       int
+
+    MaxRetries int // 命令失败重试次数 默认为0
+
+    DialTimeout time.Duration // 连接服务端的默认超时时长, init 设置为5
+    ReadTimeout time.Duration // 执行命令时服务端返回超时时长
+    WriteTimeout time.Duration // 执行命令时, 写入命令的超时时长, 
+
+    PoolSize int // 默认连接池数量, init 设置为10
+    PoolTimeout time.Duration //?
+    IdleTimeout time.Duration // 连接闲置指定时间后关闭, 默认为0 不关闭闲置连接
+    IdleCheckFrequency time.Duration // 释放闲置连接工作的间隔, init 设置 1分钟
+
+    ReadOnly bool // 是否为只读连接
+}
+#+END_SRC
+定义了连接 redis 信息以及连接对象的特征, 如默认连接池的数量(连向同一个redis服务的多个连接(链路, 底层的tcp/udp连接))
+
+提供一个 ~init()~ 方法进行默认的初始化:
+1. 使用tcp协议
+2. 默认的创建连接的函数
+   1. 使用闭包调用 net.DialTimeout(network, addr, timeout)
+   2. 引用了 Addr(redis地址端口), Network(网络协议,tcp), opt.DialTimeout(连接超时时长,5s)
+3. PoolSize = 10
+4. DialTimeout = 5 * time.Second, 创建连接的超时时长
+5. PoolTimeout = 1 * time.Second
+6. IdleCheckFreqency = time.Minute
+
+
+**** Client
+~Client~ 是 ~redis lib~ 提供的 ~redis~ 客户端对象实例, 实现 ~redis~ 所有命令接口
+#+BEGIN_SRC golang
+// file: redis.go
+type Client struct {
+    baseClient, // 连接管理对象, 命令的执行者(基于特定的连接)
+    cmdable, // 实现了Cmdable 接口, 提供 redis client 的所有命令
+}
+#+END_SRC
+集成 ~baseClient~ 和 ~cmdable~ 
+
+
+***** 创建 Client: NewClient() 
+初始化 opt 并根据 opt 参数创建后端的连接池
+再调用 newClient 创建 baseClient, cmdable, 然后初始化回 Client 
+#+BEGIN_SRC golang
+func NewClient(opt *Options) *Client {
+    opt.init() // 初始化opt的默认参数
+    return newClient(opt, newConnPool(opt))
+}
+#+END_SRC
+
+****** newConnPool
+newConnPool(opt) 函数调用 pool.NewConnPool(opt...) 创建一个 ~ConnPool~ 对象作为 ~pool.Pooler~ 接口供 Client 使用
+创建并初始化了后端的连接池
+
+****** newClient
+此函数负责创建返回的 Client 对象
+先创建 baseClient, 然后创建 Client
+#+BEGIN_SRC golang
+func newClient(opt *Options, pool pool.Pooler) *Client {
+    base := baseClient{opt: opt, connPool: pool}
+    client := &Client{
+        baseClient: base,
+	cmdable: cmdable{base.Process}
+    }
+    return client
+}
+#+END_SRC
+ 
+****** cmdable
+cmdable 是 struct, 只有一个 ~field~  process函数:
+~func(cmd Cmder) error~
+此处的 ~cmdable~ 用 ~base.Process~ 初始化, 即为 ~baseClient.Process~ 函数
+cmdable 是 redis client 的命令接口, 详情稍候分解
+
+
+***** baseClient
+包含连接池和对应的连接参数对象
+#+BEGIN_SRC golang
+//file: redis.go
+type baseClient struct {
+    connPool pool.Pooler // 连接池对象
+    opt      *Options    // 连接参数
+
+    onClose  func() error // hook called when client is closed
+}
+#+END_SRC
+
+***** Process
+Process 函数作为 ~cmdable.process~ 被调用(未定义成接口)
+#+BEGIN_SRC golang
+func(c *baseClient) Process(cmd Cmder) error {
+}
+#+END_SRC
+入参 cmd 是 ~Cmder~ 类型的接口, 定义了redis所有命令的接口
+Process 的工作是:
+1. for 循环重试命令, 重试次数为 opt.MaxRetries
+2. 如果不是第一次调用, 执行 cmd.reset()
+3. 从baseClient获取一个连接对象 c.conn()
+   1. 调用内部的 Pooler.Get() 获取一个可用的连接
+4. 设置命令超时
+5. 发送命令 writeCmd(cn, cmd)
+6. 接收响应 cmd.readReply(cn)
+7. 将获得的连接对象返回给连接池 c.putConn(cn, err, readTimeout != nil)
+8. 如果命令报错, 则重试
+9. 如果成功, 返回
+
+从 Options.Init() 可知, MaxRetries 默认为0, 不重试
+
+***** writeCmd(cn, cmd)
+file: command.go
+#+BEGIN_SRC golang
+func writeCmd(cn pool.Conn, cmds ...Cmder) error {
+    cn.Wb.Reset()
+    for _, cmd := range cmds {
+        if err := cn.Wb.Append(cmd.args()); err != nil {
+	    return err
+	}
+    }
+
+    _, err := cn.Write(cn.Wb.Bytes())
+    return err
+}
+#+END_SRC
+
+与服务端通信的接口, 使用 cn.Wb 将 Cmder 的参数按顺序写入缓存(猜的), 之后调用 cn.Write 将缓存发出
+
+
+***** cmdable
+命令接口实现, 命令和后端连接的结合分离点
+#+BEGIN_SRC golang
+// file: commands.go
+type cmdable struct {
+    process func(cmd Cmder) error // 抽取出 后端redis连接 和 redis命令 的交互逻辑
+}
+#+END_SRC
+
+cmdable 上实现了 Cmdable 接口(redis client 每个命令) 
+每个具体的命令方法都会先构造对应 redis 命令的 Cmder 对象(同时决定了返回结果), 
+再调用 cmdable.process 执行命令, 并返回这个命令作为结果, 命令可以从连接中读出结果, 如:
+#+BEGIN_SRC golang
+func (c *cmdable) Del(keys ...string) *IntCmd {
+    args := make([]interface{}, 1+len(keys))
+    args[0] = "del"
+    for i, key := range keys {
+        args[i+i] = key
+    }
+    cmd := NewIntCmd(args...) // 具体的 redis 命令对象, 负责记录命令状态解并提供析结果的特定方法
+    c.process(cmd) // 获取连接并执行命令 
+    return cmd
+}
+#+END_SRC
+其他的命令也是这个套路
+
+****** Cmdable interface
+file: commands.go
+定义了 redis 的命令接口, cmdable 是其实现
+
+
+****** Cmder
+Cmder 定义了单个redis命令的接口
+#+BEGIN_SRC golang
+// file: command.go
+type Cmder interface {
+    args() []interface{} // 函数: args() 返回一个空接口的切片
+    arg(int) string      // 函数: 入参为 int, 返回个 string
+
+    readReply(*pool.Conn) error
+    setErr(error)
+    reset()
+
+    readTimeout() *time.Duration
+
+    Err() error
+    fmt.Stringer  // 集成(继承) fmt.Stringer 接口
+}
+#+END_SRC
+
+负责接收并组装 redis 命令, 提取返回数据, 构造返回类型对象
+
+命令同时确定了执行结果返回的类型, 参见 *命令返回结果*
+
+
+***** pool.Pooler
+file: internal/pool/pool.go
+#+BEGIN_SRC golang
+type Pooler interface {
+    Get() (*Conn, error)
+    Put(*Conn) error
+    Remove(*Conn, error) error
+    Len() int
+    FreeLen() int
+    Status() *PoolStats
+    Close() error
+    Closed() bool
+}
+#+END_SRC
+
+Pooler 接口定义管理连接池中连接的方法的接口
+Pooler的实现是 ~ConnPool~
+管理的连接对象为 ~Conn~
+
+***** pool.ConnPool
+#+BEGIN_SRC golang
+//file: internal/pool/pool.go
+
+type ConnPool struct {
+}
+#+END_SRC
+实现了 Pooler 定义的所有接口, 是实际的连接管理类型
+
+***** pool.Conn
+file: internal/pool/conn.go
+#+BEGIN_SRC golang
+type Conn struct {
+    NetConn net.Conn
+    Rd *proto.Reader
+    Wb *proto.WriteBuffer
+
+    Inited bool
+    UsedAt time.Time
+
+    ReadTimeout  time.Duration
+    WriteTimeout time.Duration
+}
+#+END_SRC
+Conn 是底层的tcp连接对象, 其中包含了与 redis 通信的读写方法(通信协议定义?)和一些设置参数
+
+**** 连接
+连接对象为 ~redis.Client~, 提供各种命令的接口
+创建连接时, 提供连接串和即可
+
+**** 命令返回结果
+命令不同, 返回值不同. redis.Client 命令接口的返回对象, 包装了结果和状态
+
+file: command.go
+#+BEGIN_SRC golang
+type baseCmd struct {
+    _args []interface{}
+    err   error
+
+    _readTimeout *time.Duration
+}
+#+END_SRC
+
+定义了基类, 每种类型的返回结果继承基类, 并定义自己的 ~val~ 字段存储特定的返回值
+所有的 ~XxxCmd~ 返回结果对象都提供了
+1. Result() Xxx, error 返回命令结果和命令状态(内部的 val 和 err 值)
+2. Val() Xxx 返回命令结果
+3. Err() error 返回命令的执行状态 是否有错误
+
+*** redis 操作接口
+**** key-value
+#+BEGIN_SRC golang
+// set key value expiredTime
+func (c *Client) Set(key string, value interface{}, expiration time.Duration) *StatusCmd
+// setnx: key value expiredTime, set only key does not exists
+func (c *Client) SetNX(key string, value interface{}, expiration time.Duration) *BoolCmd
+func (c *Client) Get(key string) *StringCmd
+
+Set(key string, value interface{}, expiration time.Duration) *StatusCmd
+SetNX(key string, value interface{}, expiration time.Duration) *BoolCmd // set only if key not exists
+SetXX(key string, value interface{}, expiration time.Duration) *BoolCmd // set only if key exists
+Get(key string) *StringCmd
+Expire((key string, expiration time.Duration) *BoolCmd
+TTL(key string) *DurationCmd
+#+END_SRC
+
+
+**** hash
+#+BEGIN_SRC golang
+HSet(key, field, value string) *BoolCmd
+HSetNX(key, field, value string) *BoolCmd // only add elements not exists, never update elements
+HVals(key string) *StringSliceCmd
+HDel(key string, fields ...string) *IntCmd
+HExists(key, field string) *BoolCmd
+HGet(key, field string) *StringCmd
+HGetAll(key string) *StringStringMapCmd
+HKeys(key string) *StringSliceCmd
+HLen(key string) *IntCmd
+HMGet(key string, fields ...string) *StringSliceCmd
+HMSet(key string, fields map[string]string) *StatusCmd
+
+HScan(key string, cursor uint64, match string, count int64) Scanner
+#+END_SRC
+
+**** set
+#+BEGIN_SRC golang
+SAdd(key string, members ...interface{}) *IntCmd
+SCard(key string) *IntCmd // get the number of members in a set
+SDiff(keys ...string) *StringSliceCmd
+SDiffStore(destination string, keys ...string) *IntCmd
+SInter(key ...string) *StringSliceCmd
+SInterStore(destination string, keys ...string) *IntCmd
+SIsMember(key string, member interface{}) *BoolCmd
+SMembers(key string) *StringSliceCmd
+SMove(source, desination string, member interface{}) *BoolCmd
+SPop(key string) *StringCmd
+SPopN(key string, count int64) *StringSliceCmd
+SRandMember(key string) *StringCmd
+SRandMemberN(key string, count int64) *StringSliceCmd
+SRem(key string, members ...interface{}) *IntCmd
+SScan(key string, cursor uint64, match string, count int64) Scanner
+SUnion(keys ...string) *StringSliceCmd
+SUnionStore(destination string, keys ...string) *IntCmd
+#+END_SRC
+
+
+**** list
+#+BEGIN_SRC golang
+Sort(key string, sort Sort) *StringSliceCmd
+SortInterfaces(key string, sort Sort) *SliceCmd
+#+END_SRC
+
+
+**** Sort Set
+#+BEGIN_SRC golang
+ZAdd(key string, members ...Z) *IntCmd
+ZAddCh(key string, members ...Z) *IntCmd // ??
+ZAddNX(key string, members ...Z) *IntCmd // do not update already exists elements, only add new elements
+ZAddNXCh(key string, members ...Z) *IntCmd // 
+ZAddXX(key string, members ...Z) *IntCmd // update elements already exists, do not add elements
+#+END_SRC
+
+
+**** transaction
+#+BEGIN_SRC golang
+Watch(fn func(*Tx) error, keys ...string) error
+#+END_SRC

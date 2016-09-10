@@ -1,0 +1,57 @@
+
+** channel <2016-09-05 一> 
+
+#+BEGIN_SRC golang
+var a chan bool
+var b chan int
+var c chan string
+var d map[string]chan int
+// 所有声明的 channel 都为 nil, 必须 make 为其分配空间, 同 map, slice
+#+END_SRC
+
+channel声明后为nil
+默认make容量为0, 所有对Channel的读写都会阻塞, 直到有相对的操作出现, send保证在recv调用阻塞停止前返回
+
+*** 关闭
+close(chan)关闭指定的Channel
+
+1. 关闭的Channel可以读(<-chan)取, 返回Channel元素类型的零值和false
+  #+BEGIN_SRC golang
+v, ok := <-chan 
+if !ok {
+    log.Printf("channal is closed!\n")
+}
+  #+END_SRC
+
+2. 不能写(chan<-), 会引发 panic; 以下代码屏蔽此panic
+  #+BEGIN_SRC golang
+func writeCh(ch chan<- int) {
+    defer func() {
+        if panicErr := recover(); panicErr != nil {
+            log.Printf("writeCh panic: %v\n", panicErr)
+        }
+    } ()
+    for {
+        ch <- 1
+    }
+}
+  #+END_SRC
+
+*** 单向Channel
+将Channel作为参数传递时, 可以将其指定为单向Channel, 只允许对应函数进行一种Channel操作
+#+BEGIN_SRC golang
+ch chan int //无限制, 双向
+ch1 chan<- int //单向, 只能写入
+ch2 <-chan int //单向, 只能读出
+#+END_SRC
+
+也可以在赋值时指定方向
+#+BEGIN_SRC golang
+ch := make(chan int, 100) //cap为100的int Channel
+chW := chan<- int(ch) //ch的单向写Channel
+chR := <-chan int(ch) //ch的单向读Channel
+#+END_SRC
+
+*** TODO Channel 原理 <2016-09-10 六>
+
+*** TODO Channel 效率 <2016-09-10 六>
