@@ -21,6 +21,52 @@ var str string = ""
 data := []byte(str)
 
 
+**** 指针的序列化与反序列化
+如果容器对象的值为类型的指针, marshal会展开指针,并marshal指针指向的具体结构的值
+
+Unmarshal反向也可以填充容器的指针内容
+#+BEGIN_SRC golang
+type MyB struct {
+    Id int
+}
+
+func testPtrOfSliceMarshal() {
+    sa := make([]*MyB, 0, 3)
+    for i := 0; i < cap(sa); i++ {
+        sa = append(sa, &MyB{Id:i})
+    }   
+
+    log.Printf("sa:%#v", sa) 
+    d, err := json.Marshal(sa)
+    if err != nil {
+        log.Printf("marshal sa failed:%v", err)
+        return
+    }   
+    log.Printf("sa marshal:%v", string(d))
+
+    // unmarshal to ptr of slice
+    sb := make([]*MyB, 0, 10)
+    
+    err = json.Unmarshal(d, &sb)
+    if err != nil {
+        log.Printf("Unmarshal data to ptr of slice failed:%v")
+        return
+    }
+    log.Printf("sb from unmarshal is:%#v", sb)
+    for i, v := range sb {
+        log.Printf("[%v] is: %#v", i, v)
+    }  
+}
+// result:
+sa:[]*main.MyB{(*main.MyB)(0xc42000a410), (*main.MyB)(0xc42000a418), (*main.MyB)(0xc42000a420)}
+sa marshal:[{"Id":0},{"Id":1},{"Id":2}]
+sb from unmarshal is:[]*main.MyB{(*main.MyB)(0xc42000a4f8), (*main.MyB)(0xc42000a518), (*main.MyB)(0xc42000a528)}
+[0] is: &main.MyB{MyA:main.MyA{}, Id:0}
+[1] is: &main.MyB{MyA:main.MyA{}, Id:1}
+[2] is: &main.MyB{MyA:main.MyA{}, Id:2}
+
+#+END_SRC
+
 **** interface{} 的对象转化
 如果将type以interface{}的形式传入 json.Marshal(), 可以正常的将interface{}内实际的结构序列化出来
 如果要将 json string 反序列化成对象, 如果需要用 interface{} 包装实际的 type 类型, 需要保存在 interface{] 中的是 type 的指针:
